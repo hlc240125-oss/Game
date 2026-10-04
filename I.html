@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBA 球星人生模擬器 (NBA Superstar Career Simulator)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between selection:bg-orange-100">
+
+    <!-- 全局 Header -->
+    <header class="bg-white border-b border-slate-200 py-4 px-6 shadow-sm sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <span class="text-3xl">🏀</span>
+                <div>
+                    <h1 class="font-black text-xl tracking-wider text-slate-900">NBA 人物模擬器</h1>
+                    <p class="text-xs text-slate-500">改寫你喜歡的 NBA 球星的人生！</p>
+                </div>
+            </div>
+            <div id="header-status" class="hidden text-sm font-semibold bg-slate-100 px-4 py-2 rounded-full border border-slate-200">
+                <span id="hdr-player-name" class="text-orange-600">---</span> | 
+                <span id="hdr-team">---</span> | 
+                <span id="hdr-age">-- 歲</span> | 
+                <span class="text-indigo-600">OVR: <span id="hdr-ovr">--</span></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主內容區 -->
+    <main class="max-w-6xl mx-auto w-full p-4 flex-grow">
+
+        <!-- 1. 首頁 Landing Page -->
+        <section id="page-landing" class="flex flex-col items-center justify-center py-20 text-center space-y-8">
+            <div class="inline-block p-4 bg-orange-50 rounded-full border border-orange-200 mb-2">
+                <span class="text-6xl">🏆</span>
+            </div>
+            <h1 class="text-5xl font-black tracking-tight text-slate-900 sm:text-6xl">
+                NBA 人物模擬器
+            </h1>
+            <p class="text-xl text-slate-600 max-w-2xl font-light">
+                改寫你喜歡的 NBA 球星的人生！從新人賽季出發，分配能力點數、應對動態事件、進行球隊交易，衝擊 MVP 與總冠軍殿堂！
+            </p>
+            <button onclick="goToPage('player-select')" class="mt-8 px-10 py-4 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all transform hover:-translate-y-1">
+                <i class="fa-solid fa-play mr-2"></i> Start / 開始遊戲
+            </button>
+        </section>
+
+        <!-- 2. 球員選擇頁面 -->
+        <section id="page-player-select" class="hidden space-y-6">
+            <div class="text-center max-w-xl mx-auto">
+                <h2 class="text-3xl font-extrabold text-slate-900">選擇你的球星</h2>
+                <p class="text-slate-500 text-sm mt-1">挑選一位球星重塑生涯，系統將載入其新人賽季真實數據與天花板潛力。</p>
+            </div>
+            <div id="player-cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- 由 JavaScript 動態渲染球員卡片 -->
+            </div>
+        </section>
+
+        <!-- 3. 屬性點數分配頁面 -->
+        <section id="page-attribute-alloc" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <h2 id="alloc-title" class="text-2xl font-bold text-slate-900">新秀初始屬性分配</h2>
+                    <p class="text-sm text-slate-500">分配自由點數提升能力。能力值受限於球員天花板上限。</p>
+                </div>
+                <div class="bg-orange-50 border border-orange-200 px-6 py-3 rounded-xl text-center">
+                    <span class="text-xs font-semibold text-orange-600 uppercase tracking-wider block">剩餘可分配點數</span>
+                    <span id="alloc-free-points" class="text-3xl font-black text-orange-600">10</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 左側：球員概覽 -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <div class="text-center">
+                        <div id="alloc-avatar" class="w-24 h-24 rounded-full bg-slate-200 text-3xl font-bold flex items-center justify-center mx-auto mb-3 border-4 border-orange-500 text-slate-700"></div>
+                        <h3 id="alloc-name" class="text-2xl font-black text-slate-900">--</h3>
+                        <p id="alloc-pos-draft" class="text-sm text-slate-500">--</p>
+                    </div>
+                    <div class="border-t pt-4 space-y-2 text-sm">
+                        <div class="flex justify-between"><span class="text-slate-500">當前 Overall:</span><span id="alloc-ovr" class="font-bold text-indigo-600">--</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">能力等級:</span><span id="alloc-tier" class="font-bold text-slate-700">--</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">最高潛力上限 (Cap):</span><span id="alloc-cap" class="font-bold text-emerald-600">--</span></div>
+                    </div>
+                </div>
+
+                <!-- 右側：8 大能力屬性調節 -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <h3 class="font-bold text-lg text-slate-800 border-b pb-2">能力屬性（每點提升 1 點能力）</h3>
+                    <div id="attributes-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- JS 渲染屬性控制項 -->
+                    </div>
+                    <button id="btn-confirm-alloc" onclick="confirmAllocation()" class="w-full mt-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition">
+                        確認並進入新賽季 <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. 賽季主控制頁面 (Season Dashboard) -->
+        <section id="page-season-dashboard" class="hidden space-y-6">
+            <!-- 賽季頂部資訊欄 -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <span class="text-xs text-slate-400 font-semibold uppercase">當前球隊 / 順位</span>
+                    <p id="dash-team" class="text-xl font-black text-slate-800 mt-1">--</p>
+                    <p id="dash-draft-info" class="text-xs text-slate-500 mt-1">--</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <span class="text-xs text-slate-400 font-semibold uppercase">球員年齡 / 年資</span>
+                    <p id="dash-age-exp" class="text-xl font-black text-slate-800 mt-1">--</p>
+                    <p id="dash-phase" class="text-xs text-emerald-600 font-bold mt-1">--</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <span class="text-xs text-slate-400 font-semibold uppercase">Overall / 評級</span>
+                    <p id="dash-ovr" class="text-xl font-black text-indigo-600 mt-1">--</p>
+                    <p id="dash-tier" class="text-xs text-slate-500 mt-1">--</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <span class="text-xs text-slate-400 font-semibold uppercase">投籃傾向模式</span>
+                    <p id="dash-tendency" class="text-base font-bold text-slate-800 mt-1">--</p>
+                    <p id="dash-shot-vol" class="text-xs text-slate-500 mt-1">--</p>
+                </div>
+            </div>
+
+            <!-- 賽季互動功能按鈕區 -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <h3 class="font-bold text-slate-800 text-lg">賽季決策與推進 (<span id="current-year-display">第 1 賽季</span>)</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- 動態事件按鈕 -->
+                    <button id="btn-trigger-event" onclick="handleDynamicEvent()" class="p-4 bg-indigo-50 border border-indigo-200 rounded-xl text-left hover:bg-indigo-100 transition">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-indigo-900"><i class="fa-solid fa-bolt text-indigo-500 mr-2"></i>賽季動態事件</span>
+                            <span id="event-counter-badge" class="px-2 py-0.5 text-xs bg-indigo-600 text-white rounded-full">剩餘 3 次</span>
+                        </div>
+                        <p class="text-xs text-indigo-700 mt-2">觸發場內外危機、媒體發言或特訓抉擇。</p>
+                    </button>
+
+                    <!-- Trade Me 選項 -->
+                    <button onclick="openTradeMeModal()" class="p-4 bg-amber-50 border border-amber-200 rounded-xl text-left hover:bg-amber-100 transition">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-amber-900"><i class="fa-solid fa-right-left text-amber-500 mr-2"></i>要求交易 (Trade Me)</span>
+                        </div>
+                        <p class="text-xs text-amber-700 mt-2">選擇目標球隊，查看對方星級與球隊定位並提出交易。</p>
+                    </button>
+
+                    <!-- 逼球隊交易優質球員 -->
+                    <button onclick="demandQualityTeammate()" class="p-4 bg-rose-50 border border-rose-200 rounded-xl text-left hover:bg-rose-100 transition">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-rose-900"><i class="fa-solid fa-users-gear text-rose-500 mr-2"></i>逼管理層補強</span>
+                        </div>
+                        <p class="text-xs text-rose-700 mt-2">施加壓力要求球隊交易來全明星級強援補強陣容。</p>
+                    </button>
+                </div>
+
+                <div class="pt-2 border-t flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="text-xs text-slate-500">
+                        * 完成每季動態事件後即可點擊模擬賽季結算。
+                    </div>
+                    <button id="btn-sim-season" onclick="simulateFullSeason()" class="w-full md:w-auto px-8 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow-lg transition">
+                        <i class="fa-solid fa-forward mr-2"></i>進行常規賽與季後賽模擬
+                    </button>
+                </div>
+            </div>
+
+            <!-- 本季與歷史日誌展示區 -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 最新模擬成果展示 -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <h3 class="font-bold text-slate-800 text-lg border-b pb-2">當前賽季報告與數據</h3>
+                    <div id="latest-season-result" class="text-slate-500 text-sm italic py-8 text-center">
+                        尚未進行本賽季模擬，請點擊上方按鈕推進賽季。
+                    </div>
+                </div>
+
+                <!-- 生涯履歷日誌 -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3 flex flex-col h-[450px]">
+                    <h3 class="font-bold text-slate-800 text-lg border-b pb-2">生涯事件與軌跡</h3>
+                    <div id="career-log" class="flex-grow overflow-y-auto space-y-2 text-xs text-slate-600 pr-2 custom-scrollbar">
+                        <!-- JS 動態插入日誌 -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. 遊戲結束/生涯總結頁面 -->
+        <section id="page-game-over" class="hidden space-y-8 max-w-4xl mx-auto py-8">
+            <div class="bg-slate-900 text-white p-8 rounded-3xl text-center space-y-4 shadow-2xl relative overflow-hidden">
+                <div class="absolute -right-10 -top-10 text-slate-800 text-9xl opacity-30"><i class="fa-solid fa-trophy"></i></div>
+                <span class="px-4 py-1 bg-amber-500 text-slate-900 font-extrabold text-xs rounded-full uppercase tracking-widest">Career Summary</span>
+                <h2 id="go-player-name" class="text-4xl font-black">---</h2>
+                <div id="go-hof-badge" class="inline-block px-6 py-2 bg-gradient-to-r from-amber-400 to-yellow-600 text-slate-950 font-black text-xl rounded-2xl shadow-lg">
+                    --
+                </div>
+                <p id="go-summary-desc" class="text-slate-300 text-sm max-w-xl mx-auto font-light">--</p>
+            </div>
+
+            <!-- 生涯總數據卡片 -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl border text-center shadow-sm">
+                    <span class="text-xs text-slate-400 font-bold">生涯總得分</span>
+                    <p id="go-pts" class="text-2xl font-black text-slate-800 mt-1">0</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border text-center shadow-sm">
+                    <span class="text-xs text-slate-400 font-bold">生涯總籃板</span>
+                    <p id="go-reb" class="text-2xl font-black text-slate-800 mt-1">0</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border text-center shadow-sm">
+                    <span class="text-xs text-slate-400 font-bold">生涯總助攻</span>
+                    <p id="go-ast" class="text-2xl font-black text-slate-800 mt-1">0</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border text-center shadow-sm">
+                    <span class="text-xs text-slate-400 font-bold">總冠軍 Rings</span>
+                    <p id="go-rings" class="text-2xl font-black text-amber-500 mt-1">0</p>
+                </div>
+            </div>
+
+            <!-- 榮譽牆 -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <h3 class="font-bold text-slate-900 border-b pb-2">個人與球隊榮譽榜</h3>
+                <div id="go-honors-list" class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                    <!-- JS 動態插入 -->
+                </div>
+            </div>
+
+            <div class="text-center pt-4">
+                <button onclick="location.reload()" class="px-8 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-lg transition">
+                    <i class="fa-solid fa-rotate-right mr-2"></i>重新開啟另一位球星的人生
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 通用 Modal 彈窗 -->
+    <div id="game-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl animate-fade-in border border-slate-100">
+            <h3 id="modal-title" class="text-xl font-bold text-slate-900">提示</h3>
+            <div id="modal-body" class="text-slate-600 text-sm space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                <!-- Modal 內容 -->
+            </div>
+            <div id="modal-footer" class="flex justify-end space-x-2 pt-2 border-t">
+                <button onclick="closeModal()" class="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 text-sm font-semibold rounded-xl">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ================= 1. 遊戲資料庫與數據定義 ================= */
+        const PLAYERS_DB = [
+            {
+                id: 'lbj',
+                name: '勒邦·占士 (LeBron James)',
+                pos: 'SF/PF',
+                rookieYear: '2003-04',
+                realDraftPick: 1,
+                rookieTeam: '克里夫蘭騎士',
+                peakCap: 99,
+                tendency: { name: '全能突破攻防型', inside: 50, mid: 30, three: 20, volume: 18.5 },
+                initialAttrs: {
+                    insideScoring: 78,
+                    outsideShooting: 62,
+                    playmaking: 75,
+                    perimeterDef: 70,
+                    interiorDef: 65,
+                    rebounding: 68,
+                    athleticism: 90,
+                    potentialCap: 99
+                }
+            },
+            {
+                id: 'ad',
+                name: '安東尼·戴維斯 (Anthony Davis)',
+                pos: 'PF/C',
+                rookieYear: '2012-13',
+                realDraftPick: 1,
+                rookieTeam: '紐奧良黃蜂',
+                peakCap: 95,
+                tendency: { name: '內線禁區兼中投型', inside: 65, mid: 30, three: 5, volume: 10.6 },
+                initialAttrs: {
+                    insideScoring: 74,
+                    outsideShooting: 45,
+                    playmaking: 50,
+                    perimeterDef: 62,
+                    interiorDef: 82,
+                    rebounding: 78,
+                    athleticism: 85,
+                    potentialCap: 95
+                }
+            },
+            {
+                id: 'curry',
+                name: '史提芬·居里 (Stephen Curry)',
+                pos: 'PG',
+                rookieYear: '2009-10',
+                realDraftPick: 7,
+                rookieTeam: '金州勇士',
+                peakCap: 97,
+                tendency: { name: '外線三分神射手', inside: 30, mid: 25, three: 45, volume: 14.3 },
+                initialAttrs: {
+                    insideScoring: 65,
+                    outsideShooting: 84,
+                    playmaking: 72,
+                    perimeterDef: 58,
+                    interiorDef: 40,
+                    rebounding: 50,
+                    athleticism: 72,
+                    potentialCap: 97
+                }
+            },
+            {
+                id: 'giannis',
+                name: '揚尼斯·安特托昆波 (Giannis Antetokounmpo)',
+                pos: 'PF/SF',
+                rookieYear: '2013-14',
+                realDraftPick: 15,
+                rookieTeam: '密爾瓦基公鹿',
+                peakCap: 98,
+                tendency: { name: '衝擊籃框體能型', inside: 75, mid: 15, three: 10, volume: 6.8 },
+                initialAttrs: {
+                    insideScoring: 62,
+                    outsideShooting: 38,
+                    playmaking: 52,
+                    perimeterDef: 65,
+                    interiorDef: 66,
+                    rebounding: 62,
+                    athleticism: 86,
+                    potentialCap: 98
+                }
+            },
+            {
+                id: 'wemby',
+                name: '維克托·文班亞馬 (Victor Wembanyama)',
+                pos: 'C/PF',
+                rookieYear: '2023-24',
+                realDraftPick: 1,
+                rookieTeam: '聖安東尼奧馬刺',
+                peakCap: 98,
+                tendency: { name: '長人外投與護框型', inside: 50, mid: 20, three: 30, volume: 15.6 },
+                initialAttrs: {
+                    insideScoring: 72,
+                    outsideShooting: 68,
+                    playmaking: 55,
+                    perimeterDef: 70,
+                    interiorDef: 88,
+                    rebounding: 80,
+                    athleticism: 82,
+                    potentialCap: 98
+                }
+            },
+            {
+                id: 'jokic',
+                name: '尼古拉·約基奇 (Nikola Jokić)',
+                pos: 'C',
+                rookieYear: '2015-16',
+                realDraftPick: 41,
+                rookieTeam: '丹佛金塊',
+                peakCap: 98,
+                tendency: { name: '組織策應高智商型', inside: 60, mid: 25, three: 15, volume: 7.5 },
+                initialAttrs: {
+                    insideScoring: 68,
+                    outsideShooting: 60,
+                    playmaking: 72,
+                    perimeterDef: 45,
+                    interiorDef: 65,
+                    rebounding: 76,
+                    athleticism: 55,
+                    potentialCap: 98
+                }
+            }
+        ];
+
+        const TEAMS_DATABASE = [
+            { name: '波士頓凱爾特人', status: '爭冠球隊', star: 'Jayson Tatum' },
+            { name: '丹佛金塊', status: '爭冠球隊', star: 'Nikola Jokić' },
+            { name: '密爾瓦基公鹿', status: '爭冠球隊', star: 'Giannis Antetokounmpo' },
+            { name: '洛杉磯湖人', status: '季後賽球隊', star: 'Anthony Davis' },
+            { name: '金州勇士', status: '季後賽球隊', star: 'Stephen Curry' },
+            { name: '邁阿密熱火', status: '季後賽球隊', star: 'Jimmy Butler' },
+            { name: '聖安東尼奧馬刺', status: '擺爛重建球隊', star: 'Victor Wembanyama' },
+            { name: '底特律活塞', status: '擺爛重建球隊', star: 'Cade Cunningham' },
+            { name: '華盛頓巫師', status: '擺爛重建球隊', star: 'Jordan Poole' }
+        ];
+
+        const DYNAMIC_EVENTS_POOL = [
+            {
+                title: '休賽季特訓抉擇',
+                desc: '夏天休賽季到了，著名訓練師邀請你參加封閉式特訓，或者選擇接拍商業廣告。',
+                options: [
+                    { text: '參加魔鬼體能與投籃特訓', effect: { attrs: { outsideShooting: 2, athleticism: 1 }, desc: '投射能力 +2, 體能 +1' } },
+                    { text: '拍攝商業廣告增加曝光', effect: { attrs: { playmaking: 1 }, desc: '場外影響力上升, 傳球視野 +1' } }
+                ]
+            },
+            {
+                title: '帶傷上陣疑雲',
+                desc: '季後賽關鍵時刻你的腳踝輕微扭傷，隊醫建議休養兩週，但比賽正處於關鍵。',
+                options: [
+                    { text: '打封閉針強行帶傷上陣', effect: { attrs: { athleticism: -1, insideScoring: 1 }, desc: '球隊極度賞識，但體能永久 -1, 籃下 +1' } },
+                    { text: '聽從醫囑休養復健', effect: { attrs: { athleticism: 1 }, desc: '身體恢復良好，體能 +1' } }
+                ]
+            },
+            {
+                title: '休息室領袖紛爭',
+                desc: '隊內資深老將在媒體面前質疑你的出手選擇與戰術執行。',
+                options: [
+                    { text: '在媒體前強硬回擊，展現老大地位', effect: { attrs: { insideScoring: 1, playmaking: -1 }, desc: '個人進攻慾望上升 +1，團隊傳球 -1' } },
+                    { text: '私下溝通並主動在下場比賽多傳球', effect: { attrs: { playmaking: 2 }, desc: '贏得隊友尊重，組織傳球 +2' } }
+                ]
+            },
+            {
+                title: '防守特訓導師',
+                desc: '一位退役的名堂級防守大師願意單獨指導你兩週。',
+                options: [
+                    { text: '專注學習外線纏鬥與抄截', effect: { attrs: { perimeterDef: 3 }, desc: '外線防守 +3' } },
+                    { text: '專注學習內線護框與封阻', effect: { attrs: { interiorDef: 3 }, desc: '內線防守 +3' } }
+                ]
+            }
+        ];
+
+        /* ================= 2. 遊戲狀態 State ================= */
+        let gameState = {
+            player: null,
+            currentAge: 19,
+            seasonYear: 1,
+            currentTeam: '',
+            draftPick: 1,
+            freePoints: 10,
+            tempAttrs: {},
+            dynamicEventsLeft: 3,
+            careerStats: {
+                totalPts: 0,
+                totalReb: 0,
+                totalAst: 0,
+                gamesPlayed: 0,
+                mvps: 0,
+                dpoy: 0,
+                roty: 0,
+                rings: 0,
+                fmvps: 0,
+                allStarSeasons: 0,
+                allNbaSeasons: 0,
+                scoringTitles: 0
+            },
+            careerLogs: []
+        };
+
+        /* ================= 3. 核心計算函數 ================= */
+
+        // 計算 Overall 能力值
+        function calculateOVR(attrs) {
+            const sum = attrs.insideScoring + attrs.outsideShooting + attrs.playmaking +
+                        attrs.perimeterDef + attrs.interiorDef + attrs.rebounding + attrs.athleticism;
+            return Math.min(attrs.potentialCap, Math.round(sum / 7));
+        }
+
+        // 判定 Overall 階級 Tier
+        function getOVRPerformanceTier(ovr) {
+            if (ovr <= 65) return { name: 'NCAA 大學級別', class: 'text-slate-500' };
+            if (ovr <= 70) return { name: 'NBA 飲水機球員', class: 'text-slate-600' };
+            if (ovr <= 79) return { name: 'NBA 輪換主力', class: 'text-blue-600' };
+            if (ovr <= 85) return { name: 'NBA 首發球員', class: 'text-emerald-600' };
+            if (ovr <= 90) return { name: 'NBA 全明星', class: 'text-purple-600' };
+            if (ovr <= 95) return { name: 'NBA 最佳陣容級', class: 'text-indigo-600' };
+            if (ovr <= 98) return { name: 'MVP 級別', class: 'text-amber-600' };
+            return { name: '歷史傳奇/超巨 (GOAT)', class: 'text-rose-600 font-extrabold' };
+        }
+
+        // 生涯階段 (成長期, 黃金期, 衰退期)
+        function getCareerPhase(age) {
+            if (age <= 26) return { name: '成長期 (能力隨年齡成長)', color: 'text-emerald-600' };
+            if (age <= 31) return { name: '黃金巔峰期 (逼近最高潛力)', color: 'text-amber-600' };
+            return { name: '衰退期 (每年自然下降 2 點 OVR)', color: 'text-rose-600' };
+        }
+
+        /* ================= 4. 頁面切換與 UI 渲染 ================= */
+
+        function goToPage(pageId) {
+            ['landing', 'player-select', 'attribute-alloc', 'season-dashboard', 'game-over'].forEach(p => {
+                document.getElementById(`page-${p}`).classList.add('hidden');
+            });
+            document.getElementById(`page-${pageId}`).classList.remove('hidden');
+
+            if (pageId === 'player-select') renderPlayerSelection();
+            updateHeader();
+        }
+
+        function updateHeader() {
+            const hdr = document.getElementById('header-status');
+            if (gameState.player) {
+                hdr.classList.remove('hidden');
+                document.getElementById('hdr-player-name').innerText = gameState.player.name.split(' ')[0];
+                document.getElementById('hdr-team').innerText = gameState.currentTeam;
+                document.getElementById('hdr-age').innerText = `${gameState.currentAge} 歲`;
+                document.getElementById('hdr-ovr').innerText = calculateOVR(gameState.tempAttrs);
+            } else {
+                hdr.classList.add('hidden');
+            }
+        }
+
+        // 渲染球員選擇清單
+        function renderPlayerSelection() {
+            const grid = document.getElementById('player-cards-grid');
+            grid.innerHTML = '';
+
+            PLAYERS_DB.forEach(p => {
+                const ovr = calculateOVR(p.initialAttrs);
+                const tier = getOVRPerformanceTier(ovr);
+
+                const card = document.createElement('div');
+                card.className = 'bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4';
+                card.innerHTML = `
+                    <div class="space-y-3">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 rounded-full bg-orange-100 text-orange-600 font-bold flex items-center justify-center text-lg">
+                                ${p.name.charAt(0)}
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-slate-900 leading-snug">${p.name}</h3>
+                                <p class="text-xs text-slate-500">${p.pos} | 新秀年: ${p.rookieYear}</p>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs space-y-1">
+                            <div class="flex justify-between"><span>預計順位:</span><span class="font-semibold text-slate-700">第 ${p.realDraftPick} 順位前後</span></div>
+                            <div class="flex justify-between"><span>初始能力 OVR:</span><span class="font-bold text-indigo-600">${ovr} (${tier.name})</span></div>
+                            <div class="flex justify-between"><span>潛力天花板:</span><span class="font-bold text-emerald-600">${p.peakCap}</span></div>
+                        </div>
+                    </div>
+                    <button onclick="selectPlayer('${p.id}')" class="w-full py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-sm rounded-xl transition">
+                        選擇此球星生涯
+                    </button>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // 選擇球星初始化
+        function selectPlayer(playerId) {
+            const template = PLAYERS_DB.find(p => p.id === playerId);
+            gameState.player = JSON.parse(JSON.stringify(template));
+            gameState.currentAge = 19;
+            gameState.seasonYear = 1;
+            gameState.freePoints = 10;
+            gameState.dynamicEventsLeft = 3;
+            gameState.tempAttrs = { ...gameState.player.initialAttrs };
+
+            // 選秀順位偏離不超過 ±3 順位
+            const draftVariation = Math.floor(Math.random() * 7) - 3; // -3 ~ +3
+            gameState.draftPick = Math.max(1, gameState.player.realDraftPick + draftVariation);
+            gameState.currentTeam = gameState.player.rookieTeam;
+
+            addCareerLog(`🏀 在 ${gameState.player.rookieYear} 年選秀大會上，你以第 ${gameState.draftPick} 順位被 ${gameState.currentTeam} 選中！`);
+
+            setupAttributeAllocPage();
+            goToPage('attribute-alloc');
+        }
+
+        // 屬性分配頁面設定
+        function setupAttributeAllocPage() {
+            document.getElementById('alloc-title').innerText = gameState.seasonYear === 1 ? '新秀初始屬性分配' : `第 ${gameState.seasonYear} 賽季屬性提升`;
+            document.getElementById('alloc-free-points').innerText = gameState.freePoints;
+            document.getElementById('alloc-avatar').innerText = gameState.player.name.charAt(0);
+            document.getElementById('alloc-name').innerText = gameState.player.name;
+            document.getElementById('alloc-pos-draft').innerText = `${gameState.player.pos} | 第 ${gameState.draftPick} 順位入行 | ${gameState.currentTeam}`;
+            
+            updateAllocSummaryUI();
+            renderAttributeSliders();
+        }
+
+        function updateAllocSummaryUI() {
+            const currentOvr = calculateOVR(gameState.tempAttrs);
+            const tier = getOVRPerformanceTier(currentOvr);
+            document.getElementById('alloc-ovr').innerText = currentOvr;
+            document.getElementById('alloc-tier').innerText = tier.name;
+            document.getElementById('alloc-tier').className = `font-bold ${tier.class}`;
+            document.getElementById('alloc-cap').innerText = gameState.tempAttrs.potentialCap;
+            document.getElementById('alloc-free-points').innerText = gameState.freePoints;
+        }
+
+        const ATTR_LABELS = {
+            insideScoring: '籃下進攻 (Inside)',
+            outsideShooting: '外線投射 (Outside)',
+            playmaking: '組織傳球 (Playmaking)',
+            perimeterDef: '外線防守 (Perimeter Def)',
+            interiorDef: '內線防守 (Interior Def)',
+            rebounding: '籃板能力 (Rebounding)',
+            athleticism: '體能/速度 (Athleticism)',
+            potentialCap: '潛力上限 (Potential Cap)'
+        };
+
+        function renderAttributeSliders() {
+            const container = document.getElementById('attributes-list');
+            container.innerHTML = '';
+
+            Object.keys(ATTR_LABELS).forEach(key => {
+                const isCap = key === 'potentialCap';
+                const div = document.createElement('div');
+                div.className = 'bg-slate-50 p-3 rounded-xl border border-slate-200 flex items-center justify-between';
+                div.innerHTML = `
+                    <div>
+                        <span class="text-xs font-bold text-slate-700 block">${ATTR_LABELS[key]}</span>
+                        <span id="attr-val-${key}" class="text-lg font-black ${isCap ? 'text-emerald-600' : 'text-slate-800'}">${gameState.tempAttrs[key]}</span>
+                        <span class="text-[10px] text-slate-400"> / Cap: ${gameState.tempAttrs.potentialCap}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="changeAttr('${key}', -1)" class="w-8 h-8 rounded-lg bg-white border border-slate-300 font-bold hover:bg-slate-100">-</button>
+                        <button onclick="changeAttr('${key}', 1)" class="w-8 h-8 rounded-lg bg-orange-600 text-white font-bold hover:bg-orange-700">+</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function changeAttr(attrKey, delta) {
+            const currentVal = gameState.tempAttrs[attrKey];
+            const originalVal = gameState.player.initialAttrs[attrKey] || 50;
+
+            if (delta > 0) {
+                if (gameState.freePoints <= 0) return showModal('點數不足', '你沒有剩餘的可分配自由點數！');
+                if (attrKey !== 'potentialCap' && currentVal + 1 > gameState.tempAttrs.potentialCap) {
+                    return showModal('達到潛力天花板', `該能力不能超過當前最高潛力上限 (${gameState.tempAttrs.potentialCap})！`);
+                }
+                gameState.tempAttrs[attrKey] += 1;
+                gameState.freePoints -= 1;
+            } else if (delta < 0) {
+                if (currentVal <= 30) return;
+                gameState.tempAttrs[attrKey] -= 1;
+                gameState.freePoints += 1;
+            }
+
+            document.getElementById(`attr-val-${attrKey}`).innerText = gameState.tempAttrs[attrKey];
+            updateAllocSummaryUI();
+        }
+
+        function confirmAllocation() {
+            if (gameState.freePoints > 0) {
+                return showModal('尚未分配完畢', `你還有 ${gameState.freePoints} 點屬性點尚未分配！請分配完後繼續。`);
+            }
+            updateDashboardUI();
+            goToPage('season-dashboard');
+        }
+
+        /* ================= 5. 賽季 Dashboard & 互動邏輯 ================= */
+
+        function updateDashboardUI() {
+            const ovr = calculateOVR(gameState.tempAttrs);
+            const tier = getOVRPerformanceTier(ovr);
+            const phase = getCareerPhase(gameState.currentAge);
+
+            document.getElementById('hdr-player-name').innerText = gameState.player.name.split(' ')[0];
+            document.getElementById('hdr-team').innerText = gameState.currentTeam;
+            document.getElementById('hdr-age').innerText = `${gameState.currentAge} 歲`;
+            document.getElementById('hdr-ovr').innerText = ovr;
+
+            document.getElementById('dash-team').innerText = gameState.currentTeam;
+            document.getElementById('dash-draft-info').innerText = `生涯第 ${gameState.seasonYear} 季 | 第 ${gameState.draftPick} 順位入行`;
+            document.getElementById('dash-age-exp').innerText = `${gameState.currentAge} 歲`;
+            document.getElementById('dash-phase').innerText = phase.name;
+            document.getElementById('dash-phase').className = `text-xs font-bold mt-1 ${phase.color}`;
+
+            document.getElementById('dash-ovr').innerText = ovr;
+            document.getElementById('dash-tier').innerText = tier.name;
+            document.getElementById('dash-tier').className = `text-xs font-semibold mt-1 ${tier.class}`;
+
+            document.getElementById('dash-tendency').innerText = gameState.player.tendency.name;
+            document.getElementById('dash-shot-vol').innerText = `預估出手數: ~${gameState.player.tendency.volume} 次/場`;
+
+            document.getElementById('event-counter-badge').innerText = `剩餘 ${gameState.dynamicEventsLeft} 次`;
+            document.getElementById('current-year-display').innerText = `第 ${gameState.seasonYear} 賽季 (${gameState.currentAge} 歲)`;
+        }
+
+        // 動態事件觸發
+        function handleDynamicEvent() {
+            if (gameState.dynamicEventsLeft <= 0) {
+                return showModal('本季次數已用盡', '本賽季 3 次動態事件已全部完成，請點擊進行模擬！');
+            }
+
+            const randEvent = DYNAMIC_EVENTS_POOL[Math.floor(Math.random() * DYNAMIC_EVENTS_POOL.length)];
+            
+            let modalHtml = `<p class="mb-4">${randEvent.desc}</p><div class="space-y-2">`;
+            randEvent.options.forEach((opt, idx) => {
+                modalHtml += `
+                    <button onclick="resolveDynamicEvent(${idx}, '${randEvent.title}')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:bg-orange-50 hover:border-orange-300 transition">
+                        <span class="font-bold text-slate-800 text-sm block">${opt.text}</span>
+                        <span class="text-xs text-slate-400">* 選擇後顯示能力與球隊關係影響</span>
+                    </button>
+                `;
+            });
+            modalHtml += `</div>`;
+
+            showCustomModal(randEvent.title, modalHtml);
+        }
+
+        function resolveDynamicEvent(optIdx, eventTitle) {
+            const event = DYNAMIC_EVENTS_POOL.find(e => e.title === eventTitle);
+            const chosen = event.options[optIdx];
+
+            // 應用效果
+            if (chosen.effect.attrs) {
+                Object.keys(chosen.effect.attrs).forEach(k => {
+                    gameState.tempAttrs[k] = Math.min(gameState.tempAttrs.potentialCap, Math.max(30, (gameState.tempAttrs[k] || 60) + chosen.effect.attrs[k]));
+                });
+            }
+
+            gameState.dynamicEventsLeft -= 1;
+            addCareerLog(`⚡ [動態事件] ${eventTitle}: 選擇了「${chosen.text}」 -> ${chosen.effect.desc}`);
+            closeModal();
+            updateDashboardUI();
+
+            showModal('抉擇結果', `結果：${chosen.effect.desc}`);
+        }
+
+        // 要求交易 Trade Me
+        function openTradeMeModal() {
+            let html = `<p class="text-xs text-slate-500 mb-3">請選擇你想加入的球隊。目標球隊將付出匹配資產進行交易：</p><div class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">`;
+            
+            TEAMS_DATABASE.forEach(t => {
+                if (t.name !== gameState.currentTeam) {
+                    html += `
+                        <div class="p-3 border rounded-xl flex items-center justify-between hover:bg-slate-50">
+                            <div>
+                                <span class="font-bold text-sm text-slate-800">${t.name}</span>
+                                <span class="text-xs px-2 py-0.5 rounded ml-2 ${t.status.includes('爭冠') ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}">${t.status}</span>
+                                <p class="text-xs text-slate-400 mt-0.5">頭號球星: ${t.star}</p>
+                            </div>
+                            <button onclick="executeTradeMe('${t.name}')" class="px-3 py-1.5 bg-orange-600 text-white font-bold text-xs rounded-lg hover:bg-orange-700">申請交易</button>
+                        </div>
+                    `;
+                }
+            });
+            html += `</div>`;
+            showCustomModal('要求交易 (Trade Me)', html);
+        }
+
+        function executeTradeMe(targetTeamName) {
+            const oldTeam = gameState.currentTeam;
+            gameState.currentTeam = targetTeamName;
+            closeModal();
+            updateDashboardUI();
+
+            const tradeDesc = `📢 [重大交易] 你正式要求交易！${oldTeam} 與 ${targetTeamName} 達成協議，${oldTeam} 送出你，換來了 2個未來首輪選秀權 + 2名角色輪換球員！`;
+            addCareerLog(tradeDesc);
+            showModal('交易成功', tradeDesc);
+        }
+
+        // 逼管理層補強
+        function demandQualityTeammate() {
+            const stars = ['利拉德 (Damian Lillard)', '喬治 (Paul George)', '保羅·佐治', '阿德巴約 (Bam Adebayo)', '西亞卡姆 (Pascal Siakam)'];
+            const acquiredStar = stars[Math.floor(Math.random() * stars.length)];
+
+            const msg = `🔥 [管理層運作] 你向管理層施壓！${gameState.currentTeam} 送出了未來首輪選秀權 + 青年球員，成功交易來全明星球員 ${acquiredStar}！球隊爭冠實力大幅增強！`;
+            addCareerLog(msg);
+            showModal('管理層交易補強成功', msg);
+        }
+
+        /* ================= 6. 賽季模擬核心 (數據、傷病、獎項) ================= */
+
+        function simulateFullSeason() {
+            const ovr = calculateOVR(gameState.tempAttrs);
+
+            // 1. 傷病系統判定 (20% 小傷, 2% 重傷)
+            let injuryMsg = '';
+            let gamesPlayed = 82;
+            const randInjury = Math.random();
+            if (randInjury < 0.02) {
+                // 重傷
+                gamesPlayed = Math.floor(Math.random() * 20) + 5;
+                gameState.tempAttrs.insideScoring = Math.max(30, gameState.tempAttrs.insideScoring - 3);
+                gameState.tempAttrs.athleticism = Math.max(30, gameState.tempAttrs.athleticism - 3);
+                injuryMsg = '⚠️ [嚴重傷病] 本季不幸遭遇膝蓋十字韌帶重傷季報銷！僅出戰 ' + gamesPlayed + ' 場，能力值永久下降 3 點！';
+            } else if (randInjury < 0.22) {
+                // 小傷
+                gamesPlayed = Math.floor(Math.random() * 20) + 55;
+                injuryMsg = '🩹 [輕微傷勢] 賽季中遭遇腳踝扭傷休養，出戰 ' + gamesPlayed + ' 場，數據略受影響。';
+            }
+
+            // 2. 模擬場均數據 (精準貼合現實，極低大三元率)
+            const tendency = gameState.player.tendency;
+            const mpg = Math.min(38, Math.max(15, (ovr / 99) * 36)).toFixed(1);
+            
+            // 出手數與得分
+            const fga = (tendency.volume * (ovr / 80) * (gamesPlayed / 82)).toFixed(1);
+            const fgPct = Math.min(0.62, Math.max(0.38, (gameState.tempAttrs.insideScoring * 0.004 + gameState.tempAttrs.outsideShooting * 0.002))).toFixed(3);
+            const ppg = (fga * fgPct * 2 + (gameState.tempAttrs.outsideShooting > 75 ? 3 fontValue : 1.5)).toFixed(1);
+
+            // 籃板 (與內線/籃板屬性強相關)
+            const rpg = ((gameState.tempAttrs.rebounding * 0.12 + gameState.tempAttrs.interiorDef * 0.03) * (mpg / 30)).toFixed(1);
+
+            // 助攻 (除非 Playmaking 極高否則保持正常，降低暴增大三元)
+            const apg = ((gameState.tempAttrs.playmaking * 0.09) * (mpg / 30)).toFixed(1);
+
+            // 抄截/阻攻/+/-
+            const spg = (gameState.tempAttrs.perimeterDef * 0.02).toFixed(1);
+            const bpg = (gameState.tempAttrs.interiorDef * 0.025).toFixed(1);
+            const plusMinus = ((ovr - 75) * 0.2 + (Math.random() * 4 - 2)).toFixed(1);
+
+            // 累加生涯數據
+            gameState.careerStats.totalPts += Math.round(ppg * gamesPlayed);
+            gameState.careerStats.totalReb += Math.round(rpg * gamesPlayed);
+            gameState.careerStats.totalAst += Math.round(apg * gamesPlayed);
+            gameState.careerStats.gamesPlayed += gamesPlayed;
+
+            // 3. 常規賽戰績與獎項
+            const wins = Math.min(67, Math.max(18, Math.round((ovr - 60) * 1.1 + Math.random() * 20)));
+            const losses = 82 - wins;
+
+            let awards = [];
+            if (gameState.seasonYear === 1 && ovr >= 75) {
+                awards.push('年度最佳新秀 (ROTY)');
+                gameState.careerStats.roty++;
+            }
+            if (ppg >= 26.5) {
+                awards.push('NBA 得分王');
+                gameState.careerStats.scoringTitles++;
+            }
+            if (ovr >= 94 && wins >= 48) {
+                awards.push('例行賽 MVP');
+                gameState.careerStats.mvps++;
+            }
+            if (gameState.tempAttrs.interiorDef >= 88 && gameState.tempAttrs.perimeterDef >= 85) {
+                awards.push('最佳防守球員 (DPOY)');
+                gameState.careerStats.dpoy++;
+            }
+            if (ovr >= 86) {
+                awards.push('全明星賽入選 (All-Star)');
+                gameState.careerStats.allStarSeasons++;
+            }
+            if (ovr >= 90) {
+                awards.push('年度最佳陣容 (All-NBA)');
+                gameState.careerStats.allNbaSeasons++;
+            }
+
+            // 4. 季後賽模擬
+            let playoffResult = '未晉級季後賽';
+            let wonRing = false;
+            let wonFMVP = false;
+
+            if (wins >= 42) {
+                if (wins >= 55 && ovr >= 90) {
+                    playoffResult = '🏆 奪得 NBA 總冠軍！';
+                    wonRing = true;
+                    gameState.careerStats.rings++;
+                    if (ovr >= 88) {
+                        wonFMVP = true;
+                        gameState.careerStats.fmvps++;
+                        awards.push('總決賽 MVP (FMVP)');
+                    }
+                } else if (wins >= 48) {
+                    playoffResult = '分區決賽 (Conference Finals)';
+                } else {
+                    playoffResult = '季後賽首輪 / 準決賽';
+                }
+            }
+
+            // 5. 渲染本季成果卡片
+            const reportHtml = `
+                <div class="space-y-4">
+                    ${injuryMsg ? `<div class="p-3 bg-rose-50 text-rose-700 text-xs font-bold rounded-xl border border-rose-200">${injuryMsg}</div>` : ''}
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+                        <div class="bg-slate-50 p-3 rounded-xl border"><span class="text-xs text-slate-400">場均得分</span><p class="text-xl font-black text-slate-800">${ppg}</p></div>
+                        <div class="bg-slate-50 p-3 rounded-xl border"><span class="text-xs text-slate-400">場均籃板</span><p class="text-xl font-black text-slate-800">${rpg}</p></div>
+                        <div class="bg-slate-50 p-3 rounded-xl border"><span class="text-xs text-slate-400">場均助攻</span><p class="text-xl font-black text-slate-800">${apg}</p></div>
+                        <div class="bg-slate-50 p-3 rounded-xl border"><span class="text-xs text-slate-400">命中率 (FG%)</span><p class="text-xl font-black text-slate-800">${(fgPct * 100).toFixed(1)}%</p></div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 text-xs text-center text-slate-600 bg-slate-50 p-3 rounded-xl">
+                        <div>上場時間: <span class="font-bold text-slate-800">${mpg} 分鐘</span></div>
+                        <div>場均 +/- 值: <span class="font-bold text-indigo-600">${plusMinus}</span></div>
+                        <div>出戰場次: <span class="font-bold text-slate-800">${gamesPlayed} 場</span></div>
+                    </div>
+
+                    <div class="border-t pt-3 flex flex-col md:flex-row justify-between text-xs space-y-1 md:space-y-0">
+                        <div><span class="text-slate-400">球隊戰績:</span> <span class="font-bold text-slate-800">${wins} 勝 ${losses} 負 (${playoffResult})</span></div>
+                        <div><span class="text-slate-400">獲得榮譽:</span> <span class="font-bold text-amber-600">${awards.length > 0 ? awards.join(', ') : '無'}</span></div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('latest-season-result').innerHTML = reportHtml;
+
+            addCareerLog(`📊 [第 ${gameState.seasonYear} 賽季結算] ${ppg}分 ${rpg}板 ${apg}助 | 戰績: ${wins}-${losses} | ${awards.join(' ') || '無個人獎項'}`);
+
+            // 6. 年齡成長與衰退機制
+            advanceAgeAndAttributes();
+        }
+
+        // 年齡推進邏輯
+        function advanceAgeAndAttributes() {
+            gameState.currentAge += 1;
+            gameState.seasonYear += 1;
+            gameState.dynamicEventsLeft = 3; // 重置動態事件次數
+            gameState.freePoints = 3; // 每賽季獲得 3 點分配點數
+
+            const currentOvr = calculateOVR(gameState.tempAttrs);
+
+            // 判斷衰退期 vs 成長期
+            if (gameState.currentAge > 31) {
+                // 31 歲以上自然衰退 2 點 OVR
+                gameState.tempAttrs.athleticism = Math.max(30, gameState.tempAttrs.athleticism - 2);
+                gameState.tempAttrs.insideScoring = Math.max(30, gameState.tempAttrs.insideScoring - 1);
+                addCareerLog(`⏳ [歲月不饒人] 年齡達到 ${gameState.currentAge} 歲，體能與能力自然衰退。`);
+            } else {
+                // 成長期/巔峰期自然微幅上升
+                if (currentOvr < gameState.tempAttrs.potentialCap) {
+                    gameState.tempAttrs.athleticism = Math.min(gameState.tempAttrs.potentialCap, gameState.tempAttrs.athleticism + 1);
+                    addCareerLog(`📈 [身體成長] 年齡增長至 ${gameState.currentAge} 歲，天賦與經驗提升！`);
+                }
+            }
+
+            // 檢查是否觸發退役條件 (38-40 歲或 OVR < 65)
+            const nextOvr = calculateOVR(gameState.tempAttrs);
+            if (gameState.currentAge >= 40 || (gameState.currentAge >= 36 && nextOvr < 65)) {
+                setTimeout(() => {
+                    triggerRetirement();
+                }, 1000);
+            } else {
+                // 前往下一賽季屬性分配頁面
+                setTimeout(() => {
+                    showModal('賽季結束', `第 ${gameState.seasonYear - 1} 賽季已結束！你獲得了 3 點新賽季自由屬性點數。`);
+                    setupAttributeAllocPage();
+                    goToPage('attribute-alloc');
+                }, 1200);
+            }
+        }
+
+        /* ================= 7. 生涯結束與名人堂評級 ================= */
+
+        function triggerRetirement() {
+            goToPage('game-over');
+
+            document.getElementById('go-player-name').innerText = gameState.player.name;
+            document.getElementById('go-pts').innerText = gameState.careerStats.totalPts.toLocaleString();
+            document.getElementById('go-reb').innerText = gameState.careerStats.totalReb.toLocaleString();
+            document.getElementById('go-ast').innerText = gameState.careerStats.totalAst.toLocaleString();
+            document.getElementById('go-rings').innerText = gameState.careerStats.rings;
+
+            // 名人堂與歷史定位評級
+            const stats = gameState.careerStats;
+            let hofTitle = '';
+            let hofDesc = '';
+
+            if (stats.rings >= 3 && stats.mvps >= 1) {
+                hofTitle = '👑 奈史密斯籃球名人堂 - 歷史超巨 (GOAT Candidate)';
+                hofDesc = '你打造了屬於自己的王朝！多次 MVP 與總冠軍加冕，成為籃球歷史長河中最璀璨的巨星之一！';
+            } else if (stats.rings >= 1 || stats.mvps >= 1 || stats.allStarSeasons >= 5) {
+                hofTitle = '🌟 奈史密斯籃球名人堂 - 首輪即入選 (Hall of Famer)';
+                hofDesc = '你擁有極其偉大的職業生涯，入選全明星與榮耀無數，名垂青史！';
+            } else if (stats.allStarSeasons >= 2) {
+                hofTitle = '🏀 NBA 明星球員 (All-Star Legacy)';
+                hofDesc = '你是一名優秀的全明星球員，在聯盟留下無數精彩瞬間。';
+            } else {
+                hofTitle = '👟 NBA 實力角色球員 (Solid Role Player)';
+                hofDesc = '你在 NBA 拼搏多年，是一名受人尊重的職業球員。';
+            }
+
+            document.getElementById('go-hof-badge').innerText = hofTitle;
+            document.getElementById('go-summary-desc').innerText = hofDesc;
+
+            // 榮譽牆清單
+            const honorsContainer = document.getElementById('go-honors-list');
+            honorsContainer.innerHTML = `
+                <div class="bg-slate-50 p-3 rounded-xl">總冠軍 (Rings): <span class="font-bold text-amber-600">${stats.rings}</span></div>
+                <div class="bg-slate-50 p-3 rounded-xl">FMVP: <span class="font-bold text-amber-600">${stats.fmvps}</span></div>
+                <div class="bg-slate-50 p-3 rounded-xl">例行賽 MVP: <span class="font-bold text-amber-600">${stats.mvps}</span></div>
+                <div class="bg-slate-50 p-3 rounded-xl">最佳防守球員 DPOY: <span class="font-bold text-indigo-600">${stats.dpoy}</span></div>
+                <div class="bg-slate-50 p-3 rounded-xl">全明星 (All-Star): <span class="font-bold text-purple-600">${stats.allStarSeasons} 次</span></div>
+                <div class="bg-slate-50 p-3 rounded-xl">得分王: <span class="font-bold text-rose-600">${stats.scoringTitles} 次</span></div>
+            `;
+        }
+
+        /* ================= 8. 通用輔助工具 ================= */
+
+        function addCareerLog(text) {
+            gameState.careerLogs.unshift(text);
+            const container = document.getElementById('career-log');
+            if (container) {
+                const item = document.createElement('div');
+                item.className = 'p-2 bg-slate-50 rounded-lg border border-slate-100 leading-relaxed';
+                item.innerText = text;
+                container.prepend(item);
+            }
+        }
+
+        function showModal(title, text) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-body').innerHTML = `<p>${text}</p>`;
+            document.getElementById('game-modal').classList.remove('hidden');
+        }
+
+        function showCustomModal(title, htmlContent) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-body').innerHTML = htmlContent;
+            document.getElementById('game-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('game-modal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
