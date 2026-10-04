@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBA 球星人生模擬器 - 現實戰術版</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --accent-red: #ef4444;
+            --accent-green: #10b981;
+            --border-color: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --radius: 12px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); line-height: 1.5; padding: 20px; display: flex; justify-content: center; }
+        #app { width: 100%; max-width: 1050px; }
+
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); }
+        .hidden { display: none !important; }
+
+        h1 { font-size: 2.2rem; font-weight: 800; color: var(--text-main); text-align: center; margin-bottom: 8px; }
+        h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 16px; color: var(--text-main); }
+        h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; }
+        p.subtitle { text-align: center; color: var(--text-muted); font-size: 1.1rem; margin-bottom: 24px; }
+        
+        .btn { display: inline-flex; align-items: center; justify-content: center; background-color: var(--primary); color: white; border: none; border-radius: 8px; padding: 12px 24px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; font-size: 1rem; }
+        .btn:hover { background-color: var(--primary-hover); transform: translateY(-1px); }
+        .btn:disabled { background-color: #94a3b8; cursor: not-allowed; transform: none; }
+        .btn-secondary { background-color: #e2e8f0; color: var(--text-main); }
+        .btn-secondary:hover { background-color: #cbd5e1; }
+        .btn-sm { padding: 6px 14px; font-size: 0.875rem; }
+
+        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+
+        .player-card { border: 2px solid var(--border-color); border-radius: var(--radius); padding: 16px; text-align: center; cursor: pointer; transition: all 0.2s; background: white; }
+        .player-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: var(--shadow); }
+        .player-card.selected { border-color: var(--primary); background-color: #eff6ff; }
+        .avatar { width: 70px; height: 70px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px auto; font-size: 1.8rem; font-weight: bold; color: var(--primary); }
+
+        .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+        .stat-controls { display: flex; align-items: center; gap: 8px; }
+        .btn-circle { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border-color); background: white; cursor: pointer; font-weight: bold; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; }
+        .btn-circle:hover { background: #f1f5f9; }
+
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 700; background: #e2e8f0; color: var(--text-main); }
+        .badge-gold { background: #fef08a; color: #854d0e; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.875rem; }
+        th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { background-color: #f8fafc; color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal { background: white; padding: 24px; border-radius: var(--radius); width: 90%; max-width: 580px; max-height: 90vh; overflow-y: auto; }
+        .event-option { border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-top: 8px; cursor: pointer; transition: 0.2s; }
+        .event-option:hover { background: #f8fafc; border-color: var(--primary); }
+
+        /* 自訂戰術傾向 Control Range Style */
+        .slider-container { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .slider-labels { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; color: var(--text-main); }
+        input[type="range"] { width: 100%; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- 1. 首頁 -->
+    <div id="view-landing" class="card" style="text-align: center; padding: 60px 20px;">
+        <h1>🏀 NBA 人物模擬器</h1>
+        <p class="subtitle">自訂個人出手傾向、挑戰19-31歲黃金生涯，邁向名人堂殿堂！</p>
+        <button class="btn" style="padding: 16px 40px; font-size: 1.2rem;" onclick="showView('view-select')">Start / 開始遊戲</button>
+    </div>
+
+    <!-- 2. 球員選擇頁面 -->
+    <div id="view-select" class="card hidden">
+        <h2>選擇你的球星模板</h2>
+        <p style="color: var(--text-muted); margin-bottom: 16px;">選秀順位誤差將嚴格限制在 ±3 順位內。</p>
+        <div id="player-grid" class="grid-3"></div>
+        <div style="margin-top: 24px; text-align: right;">
+            <button class="btn btn-secondary" onclick="showView('view-landing')">返回首頁</button>
+            <button class="btn" id="btn-confirm-player" disabled onclick="startDraftPhase()">進入選秀大會 →</button>
+        </div>
+    </div>
+
+    <!-- 2b. 選秀動畫與結果 -->
+    <div id="view-draft" class="card hidden" style="text-align: center; padding: 50px 20px;">
+        <h2>🏀 NBA 選秀大會</h2>
+        <div id="draft-animation" style="margin: 30px 0;">
+            <p style="font-size: 1.2rem; color: var(--text-muted);">選秀大會進行中，各大球隊評估中...</p>
+        </div>
+        <div id="draft-result" class="hidden">
+            <h3 id="draft-pick-text" style="font-size: 1.8rem; color: var(--primary); margin-bottom: 12px;"></h3>
+            <p id="draft-team-text" style="font-size: 1.1rem; margin-bottom: 24px;"></p>
+            <button class="btn" onclick="initAttributeAllocation()">進入能力屬性分配 →</button>
+        </div>
+    </div>
+
+    <!-- 3. 屬性分配頁面 -->
+    <div id="view-allocation" class="card hidden">
+        <h2>能力屬性分配</h2>
+        <p id="alloc-subtitle" style="color: var(--text-muted); margin-bottom: 16px;"></p>
+        
+        <div style="background: #f1f5f9; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+            <span>可分配點數：<strong id="points-left" style="color: var(--primary); font-size: 1.3rem;">10</strong></span>
+            <span>當前 Overall: <strong id="alloc-ovr" style="font-size: 1.2rem;">--</strong> (<span id="alloc-tier">--</span>)</span>
+        </div>
+
+        <div id="attributes-container"></div>
+
+        <div style="margin-top: 24px; text-align: right;">
+            <button class="btn" id="btn-start-career" onclick="finishAllocation()">進入賽季大廳 →</button>
+        </div>
+    </div>
+
+    <!-- 4. 賽季大廳 -->
+    <div id="view-dashboard" class="card hidden">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 16px;">
+            <div>
+                <h2 id="dash-player-name" style="margin-bottom: 4px;"></h2>
+                <p id="dash-player-info" style="color: var(--text-muted);"></p>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 2rem; font-weight: 800; color: var(--primary);" id="dash-ovr"></div>
+                <span class="badge badge-gold" id="dash-tier"></span>
+            </div>
+        </div>
+
+        <!-- 戰術與個人傾向設定 (玩家可自訂) -->
+        <div class="card" style="background:#f1f5f9; border:none; margin-bottom:20px; padding:16px;">
+            <h3 style="margin-bottom:12px;">⚙️ 戰術與個人出手傾向 (玩家可自由調整)</h3>
+            <div class="grid-2">
+                <div class="slider-container">
+                    <div class="slider-labels">
+                        <span>禁區切入/中投: <span id="val-inside-ratio">50</span>%</span>
+                        <span>三分外線: <span id="val-outside-ratio">50</span>%</span>
+                    </div>
+                    <input type="range" id="slider-tendency" min="10" max="90" value="50" oninput="updateTendencyFromSlider(this.value)">
+                </div>
+
+                <div class="slider-container">
+                    <div class="slider-labels">
+                        <span>開火權/進攻角色:</span>
+                        <span id="label-role-mode" style="color:var(--primary);">攻守平衡</span>
+                    </div>
+                    <select id="select-role-mode" style="padding:6px; border-radius:6px; border:1px solid var(--border-color);" onchange="updateRoleMode(this.value)">
+                        <option value="0.85">團隊優先 (出手減少，傳球/助攻比例提高)</option>
+                        <option value="1.0" selected>攻守平衡 (標準出手與組織比例)</option>
+                        <option value="1.18">絕對核心 (無限開火權，高出手高得分)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom: 20px;">
+            <div style="background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+                <h3>球隊與交易選項</h3>
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 12px;" id="dash-team-info"></p>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="btn btn-sm btn-secondary" onclick="openTradeModal('trade_me')">Trade Me (要求交易)</button>
+                    <button class="btn btn-sm btn-secondary" onclick="openTradeModal('force_star')">逼球隊交易補強</button>
+                </div>
+            </div>
+            <div style="background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+                <h3>賽季進程與傷病風險</h3>
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 12px;">完成每季 3 次事件後即可模擬本季。傷病機率：健康(78%) / 輕傷(17%) / 重傷(4%) / 報銷(1%)。</p>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-sm" id="btn-trigger-event" onclick="triggerNextEvent()">觸發動態事件 (<span id="event-count">0</span>/3)</button>
+                    <button class="btn btn-sm btn-secondary" id="btn-sim-season" disabled onclick="simulateFullSeason()">模擬本賽季數據</button>
+                </div>
+            </div>
+        </div>
+
+        <h3>生涯數據紀錄 (Career Stats)</h3>
+        <div style="overflow-x: auto;">
+            <table id="career-stats-table">
+                <thead>
+                    <tr>
+                        <th>賽季</th><th>年齡</th><th>球隊</th><th>MPG</th><th>FGA</th><th>PPG</th><th>RPG</th><th>APG</th><th>SPG</th><th>BPG</th><th>FG%</th><th>3P%</th><th>+/-</th><th>榮譽與獎項</th>
+                    </tr>
+                </thead>
+                <tbody id="career-stats-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 5. 遊戲結束 / 生涯結算 -->
+    <div id="view-summary" class="card hidden" style="text-align: center;">
+        <h1 style="color: var(--primary);">🏆 職業生涯退役總結</h1>
+        <p class="subtitle" id="summary-player-title"></p>
+
+        <div style="background: #f8fafc; padding: 20px; border-radius: var(--radius); margin: 20px 0;" class="grid-3">
+            <div><p style="color: var(--text-muted);">總出賽賽季</p><h2 id="sum-seasons"></h2></div>
+            <div><p style="color: var(--text-muted);">生涯總得分</p><h2 id="sum-pts"></h2></div>
+            <div><p style="color: var(--text-muted);">總冠軍數</p><h2 id="sum-rings"></h2></div>
+            <div><p style="color: var(--text-muted);">MVP 數</p><h2 id="sum-mvps"></h2></div>
+            <div><p style="color: var(--text-muted);">FMVP 數</p><h2 id="sum-fmvps"></h2></div>
+            <div><p style="color: var(--text-muted);">全明星次數</p><h2 id="sum-allstars"></h2></div>
+        </div>
+
+        <div style="margin: 24px 0; padding: 20px; border: 2px dashed var(--primary); border-radius: var(--radius);">
+            <h3 style="color: var(--text-muted);">最終歷史定位評級</h3>
+            <h1 id="sum-hof-status" style="font-size: 2rem; color: #b45309; margin-top: 8px;"></h1>
+        </div>
+
+        <button class="btn" onclick="location.reload()">重新開始新生涯</button>
+    </div>
+</div>
+
+<!-- Modal 彈窗元件 -->
+<div id="modal-container" class="modal-overlay hidden">
+    <div class="modal" id="modal-content"></div>
+</div>
+
+<script>
+// --- 核心資料庫 ---
+const PLAYERS_DB = [
+    {
+        id: 'lbj', name: 'LeBron James (勒邦·占士)', age: 19, realDraft: 1, pos: 'SF',
+        peakCap: 99,
+        stats: { inside: 82, outside: 65, playmaking: 78, perDef: 72, intDef: 68, reb: 68, speed: 90 },
+        initTendency: { insideRatio: 0.70, outsideRatio: 0.30, fgaBase: 18.5 },
+        rookieStats: '20.9 分 5.5 籃板 5.9 助攻 1.6 抄截'
+    },
+    {
+        id: 'ad', name: 'Anthony Davis (安東尼·戴維斯)', age: 19, realDraft: 1, pos: 'PF/C',
+        peakCap: 95,
+        stats: { inside: 80, outside: 40, playmaking: 48, perDef: 65, intDef: 84, reb: 80, speed: 76 },
+        initTendency: { insideRatio: 0.85, outsideRatio: 0.15, fgaBase: 14.0 },
+        rookieStats: '13.5 分 8.2 籃板 1.0 助攻 1.8 阻攻'
+    },
+    {
+        id: 'curry', name: 'Stephen Curry (史提芬·居里)', age: 21, realDraft: 7, pos: 'PG',
+        peakCap: 97,
+        stats: { inside: 65, outside: 88, playmaking: 76, perDef: 60, intDef: 45, reb: 50, speed: 80 },
+        initTendency: { insideRatio: 0.35, outsideRatio: 0.65, fgaBase: 14.3 },
+        rookieStats: '17.5 分 4.5 籃板 5.9 助攻 1.9 抄截'
+    },
+    {
+        id: 'giannis', name: 'Giannis Antetokounmpo (揚尼斯·安達托昆波)', age: 19, realDraft: 15, pos: 'PF',
+        peakCap: 98,
+        stats: { inside: 72, outside: 35, playmaking: 55, perDef: 68, intDef: 70, reb: 65, speed: 82 },
+        initTendency: { insideRatio: 0.90, outsideRatio: 0.10, fgaBase: 8.0 },
+        rookieStats: '6.8 分 4.4 籃板 1.9 助攻 0.8 阻攻'
+    },
+    {
+        id: 'luka', name: 'Luka Dončić (盧卡·董西奇)', age: 19, realDraft: 3, pos: 'PG/SG',
+        peakCap: 97,
+        stats: { inside: 78, outside: 76, playmaking: 85, perDef: 62, intDef: 55, reb: 72, speed: 72 },
+        initTendency: { insideRatio: 0.55, outsideRatio: 0.45, fgaBase: 16.5 },
+        rookieStats: '21.2 分 7.8 籃板 6.0 助攻 1.1 抄截'
+    },
+    {
+        id: 'jokic', name: 'Nikola Jokić (尼古拉·約基奇)', age: 20, realDraft: 41, pos: 'C',
+        peakCap: 98,
+        stats: { inside: 76, outside: 65, playmaking: 78, perDef: 50, intDef: 68, reb: 78, speed: 58 },
+        initTendency: { insideRatio: 0.70, outsideRatio: 0.30, fgaBase: 7.5 },
+        rookieStats: '10.0 分 7.0 籃板 2.4 助攻 1.0 抄截'
+    },
+    {
+        id: 'wemby', name: 'Victor Wembanyama (維克多·班比雅馬)', age: 19, realDraft: 1, pos: 'C',
+        peakCap: 98,
+        stats: { inside: 78, outside: 72, playmaking: 55, perDef: 75, intDef: 90, reb: 85, speed: 76 },
+        initTendency: { insideRatio: 0.60, outsideRatio: 0.40, fgaBase: 16.0 },
+        rookieStats: '21.4 分 10.6 籃板 3.9 助攻 3.6 阻攻'
+    },
+    {
+        id: 'kobe', name: 'Kobe Bryant (科比·布萊恩)', age: 18, realDraft: 13, pos: 'SG',
+        peakCap: 98,
+        stats: { inside: 72, outside: 68, playmaking: 60, perDef: 70, intDef: 50, reb: 52, speed: 85 },
+        initTendency: { insideRatio: 0.60, outsideRatio: 0.40, fgaBase: 5.9 },
+        rookieStats: '7.6 分 1.9 籃板 1.3 助攻 0.7 抄截'
+    },
+    {
+        id: 'mj', name: 'Michael Jordan (麥可·佐敦)', age: 21, realDraft: 3, pos: 'SG',
+        peakCap: 99,
+        stats: { inside: 88, outside: 60, playmaking: 75, perDef: 82, intDef: 65, reb: 68, speed: 94 },
+        initTendency: { insideRatio: 0.75, outsideRatio: 0.25, fgaBase: 19.8 },
+        rookieStats: '28.2 分 6.5 籃板 5.9 助攻 2.4 抄截'
+    }
+];
+
+const TEAMS_DB = [
+    { name: '洛杉磯湖人', type: '爭冠球隊', star: 'Anthony Davis', power: 88 },
+    { name: '波士頓塞爾提克', type: '爭冠球隊', star: 'Jayson Tatum', power: 90 },
+    { name: '密爾瓦基公鹿', type: '爭冠球隊', star: 'Giannis Antetokounmpo', power: 87 },
+    { name: '金州勇士', type: '季後賽球隊', star: 'Stephen Curry', power: 82 },
+    { name: '達拉斯獨行俠', type: '季後賽球隊', star: 'Luka Doncic', power: 83 },
+    { name: '邁阿密熱火', type: '季後賽球隊', star: 'Bam Adebayo', power: 80 },
+    { name: '聖安東尼奧馬刺', type: '擺爛/重建球隊', star: 'Devin Vassell', power: 68 },
+    { name: '底特律活塞', type: '擺爛/重建球隊', star: 'Cade Cunningham', power: 65 },
+    { name: '華盛頓巫師', type: '擺爛/重建球隊', star: 'Jordan Poole', power: 62 }
+];
+
+const DYNAMIC_EVENT_POOL = [
+    {
+        title: '休賽季特訓偏向',
+        desc: '休賽季你擁有一整個月的封閉特訓時間，你決定聚焦於何種專案？',
+        options: [
+            { text: '遠投與外線戰術跑位', effect: { outside: 3, speed: 1 }, msg: '你的外線投射增加 3 點，體能速度增加 1 點！' },
+            { text: '禁區對抗與力量重訓', effect: { inside: 3, intDef: 2 }, msg: '你的籃下進攻增加 3 點，內線防守增加 2 點！' },
+            { text: '研讀比賽影片與傳球視野', effect: { playmaking: 4 }, msg: '你的組織傳球能力顯著提升 4 點！' }
+        ]
+    },
+    {
+        title: '身體管理與保護抉擇',
+        desc: '例行賽進入密集賽程，防守教練建議你適當控制碰撞強度以減少傷病風險。',
+        options: [
+            { text: '聽從教練建議，適度保護身體', effect: { speed: 1 }, msg: '良好的體能管理讓你保持了出色的身體狀態。' },
+            { text: '每球必爭，展現極致防守侵略性', effect: { perDef: 2, intDef: 2 }, msg: '強悍的防守姿態感染全隊！防守能力獲得提升！' }
+        ]
+    },
+    {
+        title: '商業代言與場外生活',
+        desc: '多家全球知名品牌向你發出高薪代言邀請，拍攝檔期十分緊湊。',
+        options: [
+            { text: '接受代言，建立個人商業帝國', effect: { playmaking: -1 }, msg: '場外事務稍稍分散了精力，本季組織專注力微微受影響。' },
+            { text: '專注球場，拒絕所有非必要活動', effect: { perDef: 2, intDef: 2 }, msg: '專注的態度讓你在防守端表現大增！外線與內線防守各 +2。' }
+        ]
+    },
+    {
+        title: '休息室領袖危機',
+        desc: '隊內老將與總教練在休息室發生爆發性口角，隊友們紛紛看著你。',
+        options: [
+            { text: '挺身而出公開支持總教練權威', effect: { playmaking: 2 }, msg: '你樹立了領袖權威，組織傳球與隊友信任度提升 2 點！' },
+            { text: '安撫老將情緒，私下閉門溝通', effect: { perDef: 2 }, msg: '你展現了成熟的溝通情商，團隊防守默契提升 2 點！' }
+        ]
+    }
+];
+
+// --- 全域遊戲狀態 ---
+let gameState = {
+    playerTemplate: null,
+    draftPick: 1,
+    team: null,
+    age: 19,
+    season: 1,
+    stats: {},
+    allocPoints: 10,
+    sessionStartStats: {}, 
+    // 玩家自訂戰術傾向
+    customTendency: {
+        insideRatio: 0.50,
+        outsideRatio: 0.50,
+        roleMultiplier: 1.0 // 1.0 攻守平衡, 0.85 團隊優先, 1.18 絕對核心
+    },
+    completedEventsThisSeason: 0,
+    seasonEvents: [],
+    hasSimulatedSeason: false,
+    careerHistory: [],
+    trophies: { mvp: 0, fmvp: 0, rings: 0, allStar: 0, dpoy: 0, roty: 0 }
+};
+
+// --- View 管理 ---
+function showView(viewId) {
+    document.querySelectorAll('#app > div').forEach(div => div.classList.add('hidden'));
+    document.getElementById(viewId).classList.remove('hidden');
+}
+
+function initPlayerSelection() {
+    const grid = document.getElementById('player-grid');
+    grid.innerHTML = '';
+    PLAYERS_DB.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'player-card';
+        card.onclick = () => selectPlayer(p.id, card);
+        card.innerHTML = `
+            <div class="avatar">${p.name.charAt(0)}</div>
+            <h3>${p.name}</h3>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin:4px 0;">位置: ${p.pos} | 現實順位: #${p.realDraft}</p>
+            <p style="font-size:0.85rem; margin:4px 0;">最高天花板: <strong>${p.peakCap}</strong></p>
+            <p style="font-size:0.75rem; color:var(--text-muted); background:#f1f5f9; padding:4px; border-radius:4px; margin-top:6px;">
+                新秀數據: ${p.rookieStats}
+            </p>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function selectPlayer(id, cardEl) {
+    document.querySelectorAll('.player-card').forEach(c => c.classList.remove('selected'));
+    cardEl.classList.add('selected');
+    gameState.playerTemplate = PLAYERS_DB.find(p => p.id === id);
+    // 初始化自訂傾向為模板預設
+    gameState.customTendency.insideRatio = gameState.playerTemplate.initTendency.insideRatio;
+    gameState.customTendency.outsideRatio = gameState.playerTemplate.initTendency.outsideRatio;
+    document.getElementById('btn-confirm-player').disabled = false;
+}
+
+// --- 1. 選秀大會 (順位誤差 <= 3) ---
+function startDraftPhase() {
+    showView('view-draft');
+    const p = gameState.playerTemplate;
+    const animBox = document.getElementById('draft-animation');
+    const resultBox = document.getElementById('draft-result');
+    resultBox.classList.add('hidden');
+    animBox.classList.remove('hidden');
+
+    setTimeout(() => {
+        let offset = Math.floor(Math.random() * 7) - 3; // [-3, +3]
+        let pick = Math.max(1, Math.min(60, p.realDraft + offset));
+        gameState.draftPick = pick;
+
+        const randomTeam = TEAMS_DB[Math.floor(Math.random() * TEAMS_DB.length)];
+        gameState.team = JSON.parse(JSON.stringify(randomTeam));
+
+        gameState.age = p.age;
+        gameState.stats = { ...p.stats };
+
+        animBox.classList.add('hidden');
+        resultBox.classList.remove('hidden');
+
+        document.getElementById('draft-pick-text').innerText = `第 ${gameState.draftPick} 順位`;
+        document.getElementById('draft-team-text').innerText = `被【${gameState.team.name}】(${gameState.team.type}) 選中！頭號球星：${gameState.team.star}`;
+    }, 1000);
+}
+
+// --- 2. 能力值與 Overall 計算 ---
+function calculateOverall(statsObj = gameState.stats) {
+    const s = statsObj;
+    const sum = (s.inside * 1.05) + (s.outside * 1.05) + (s.playmaking * 1.0) + 
+                (s.perDef * 0.95) + (s.intDef * 0.95) + (s.reb * 0.9) + (s.speed * 1.0);
+    const avg = Math.round(sum / 6.9);
+    return Math.min(avg, gameState.playerTemplate.peakCap);
+}
+
+function getOverallTier(ovr) {
+    if (ovr <= 65) return 'NCAA 大學級別';
+    if (ovr <= 70) return 'NBA 替補/飲水機';
+    if (ovr <= 79) return 'NBA 輪換主力';
+    if (ovr <= 85) return 'NBA 首發球員';
+    if (ovr <= 90) return 'NBA 全明星';
+    if (ovr <= 95) return 'NBA 最佳陣容';
+    if (ovr <= 98) return 'MVP 巨星';
+    return '99: 歷史 GOAT 級別';
+}
+
+function initAttributeAllocation() {
+    showView('view-allocation');
+    gameState.sessionStartStats = { ...gameState.stats };
+    renderAttributeAllocation();
+}
+
+function renderAttributeAllocation() {
+    const container = document.getElementById('attributes-container');
+    container.innerHTML = '';
+    
+    document.getElementById('alloc-subtitle').innerText = 
+        `天花板上限 (${gameState.playerTemplate.peakCap})。分配點數提升個人戰力。`;
+    
+    document.getElementById('points-left').innerText = gameState.allocPoints;
+    const curOvr = calculateOverall();
+    document.getElementById('alloc-ovr').innerText = curOvr;
+    document.getElementById('alloc-tier').innerText = getOverallTier(curOvr);
+
+    const attrMap = [
+        { key: 'inside', label: '籃下進攻 (Inside)' },
+        { key: 'outside', label: '外線投射 (Outside)' },
+        { key: 'playmaking', label: '組織傳球 (Playmaking)' },
+        { key: 'perDef', label: '外線防守 (Perimeter Def)' },
+        { key: 'intDef', label: '內線防守 (Interior Def)' },
+        { key: 'reb', label: '籃板能力 (Rebounding)' },
+        { key: 'speed', label: '體能速度 (Speed)' }
+    ];
+
+    attrMap.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'stat-row';
+        row.innerHTML = `
+            <span><strong>${item.label}</strong></span>
+            <div class="stat-controls">
+                <button class="btn-circle" onclick="changeStat('${item.key}', -1)">-</button>
+                <span style="width:40px; text-align:center; font-weight:bold;">${gameState.stats[item.key]}</span>
+                <button class="btn-circle" onclick="changeStat('${item.key}', 1)">+</button>
+            </div>
+        `;
+        container.appendChild(row);
+    });
+}
+
+function changeStat(key, delta) {
+    const peak = gameState.playerTemplate.peakCap;
+    if (delta > 0) {
+        if (gameState.allocPoints <= 0) return;
+        if (gameState.stats[key] >= peak) return;
+        gameState.stats[key] += 1;
+        gameState.allocPoints -= 1;
+    } else if (delta < 0) {
+        if (gameState.stats[key] <= gameState.sessionStartStats[key]) return;
+        gameState.stats[key] -= 1;
+        gameState.allocPoints += 1;
+    }
+    renderAttributeAllocation();
+}
+
+function finishAllocation() {
+    showView('view-dashboard');
+    prepareSeasonEvents();
+    syncTendencyUI();
+    updateDashboardUI();
+}
+
+// --- 3. 戰術與出手傾向調整控制 ---
+function syncTendencyUI() {
+    const val = Math.round(gameState.customTendency.insideRatio * 100);
+    document.getElementById('slider-tendency').value = val;
+    document.getElementById('val-inside-ratio').innerText = val;
+    document.getElementById('val-outside-ratio').innerText = 100 - val;
+    document.getElementById('select-role-mode').value = gameState.customTendency.roleMultiplier;
+}
+
+function updateTendencyFromSlider(val) {
+    const inside = parseInt(val) / 100;
+    gameState.customTendency.insideRatio = inside;
+    gameState.customTendency.outsideRatio = 1 - inside;
+    document.getElementById('val-inside-ratio').innerText = val;
+    document.getElementById('val-outside-ratio').innerText = 100 - val;
+}
+
+function updateRoleMode(val) {
+    gameState.customTendency.roleMultiplier = parseFloat(val);
+    const labelMap = { '0.85': '團隊優先', '1.0': '攻守平衡', '1.18': '絕對核心' };
+    document.getElementById('label-role-mode').innerText = labelMap[val] || '攻守平衡';
+}
+
+// --- 4. 賽季大廳 UI 與狀態更新 ---
+function updateDashboardUI() {
+    const ovr = calculateOverall();
+    const p = gameState.playerTemplate;
+    document.getElementById('dash-player-name').innerText = p.name;
+    document.getElementById('dash-player-info').innerText = 
+        `年齡: ${gameState.age} 歲 | 位置: ${p.pos} | 第 ${gameState.season} 賽季`;
+    document.getElementById('dash-ovr').innerText = ovr;
+    document.getElementById('dash-tier').innerText = getOverallTier(ovr);
+
+    document.getElementById('dash-team-info').innerHTML = 
+        `效力球隊: <strong>${gameState.team.name}</strong> (${gameState.team.type})<br>頭號球星: <strong>${gameState.team.star}</strong>`;
+
+    document.getElementById('event-count').innerText = gameState.completedEventsThisSeason;
+    
+    const canSimulate = (gameState.completedEventsThisSeason >= 3) && (!gameState.hasSimulatedSeason);
+    document.getElementById('btn-sim-season').disabled = !canSimulate;
+    document.getElementById('btn-trigger-event').disabled = (gameState.completedEventsThisSeason >= 3);
+}
+
+// --- 5. 交易機制 ---
+function openTradeModal(type) {
+    const modal = document.getElementById('modal-container');
+    const content = document.getElementById('modal-content');
+    modal.classList.remove('hidden');
+
+    if (type === 'trade_me') {
+        const availableTeams = TEAMS_DB.filter(t => t.name !== gameState.team.name);
+        let teamsOptionsHtml = availableTeams.map((t, idx) => `
+            <div class="event-option" onclick="executeTradeMe(${idx})">
+                <strong>${t.name}</strong> <span class="badge">${t.type}</span>
+                <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">頭號球星: ${t.star}</p>
+            </div>
+        `).join('');
+
+        content.innerHTML = `
+            <h3>要求交易 (Trade Me)</h3>
+            <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:12px;">選擇加盟目標球隊：</p>
+            ${teamsOptionsHtml}
+            <div style="margin-top:16px; text-align:right;">
+                <button class="btn btn-secondary btn-sm" onclick="closeModal()">取消</button>
+            </div>
+        `;
+    } else if (type === 'force_star') {
+        content.innerHTML = `
+            <h3>逼球隊交易補強</h3>
+            <p style="font-size:0.95rem; margin-bottom:12px;">要求管理層送走籌碼，交易來全明星輔佐你。</p>
+            <div class="event-option" onclick="executeForceStarTrade()">
+                <strong>發動大交易引進全明星</strong>
+            </div>
+            <div style="margin-top:16px; text-align:right;">
+                <button class="btn btn-secondary btn-sm" onclick="closeModal()">取消</button>
+            </div>
+        `;
+    }
+}
+
+function executeTradeMe(targetIndex) {
+    const availableTeams = TEAMS_DB.filter(t => t.name !== gameState.team.name);
+    const targetTeam = availableTeams[targetIndex];
+    const oldTeamName = gameState.team.name;
+    
+    gameState.team = JSON.parse(JSON.stringify(targetTeam));
+
+    const content = document.getElementById('modal-content');
+    content.innerHTML = `
+        <h3>【交易完成】</h3>
+        <p style="margin:12px 0;"><strong>${oldTeamName}</strong> 將你打包送往 <strong>${targetTeam.name}</strong>！正式加盟新東家！</p>
+        <div style="margin-top:16px; text-align:right;">
+            <button class="btn btn-sm" onclick="closeModal(); updateDashboardUI();">確認</button>
+        </div>
+    `;
+}
+
+function executeForceStarTrade() {
+    gameState.team.power = Math.min(96, gameState.team.power + 7);
+    const content = document.getElementById('modal-content');
+    content.innerHTML = `
+        <h3>【補強成功】</h3>
+        <p style="margin:12px 0;"><strong>${gameState.team.name}</strong> 送出未來首輪籤，成功交易來一位全明星大前鋒！球隊競爭力大增！</p>
+        <div style="margin-top:16px; text-align:right;">
+            <button class="btn btn-sm" onclick="closeModal(); updateDashboardUI();">確認</button>
+        </div>
+    `;
+}
+
+function closeModal() {
+    document.getElementById('modal-container').classList.add('hidden');
+}
+
+// --- 6. 賽季事件系統 ---
+function prepareSeasonEvents() {
+    gameState.completedEventsThisSeason = 0;
+    gameState.hasSimulatedSeason = false;
+    const shuffled = [...DYNAMIC_EVENT_POOL].sort(() => 0.5 - Math.random());
+    gameState.seasonEvents = shuffled.slice(0, 3);
+}
+
+function triggerNextEvent() {
+    if (gameState.completedEventsThisSeason >= 3) return;
+    const evt = gameState.seasonEvents[gameState.completedEventsThisSeason];
+    const modal = document.getElementById('modal-container');
+    const content = document.getElementById('modal-content');
+    modal.classList.remove('hidden');
+
+    let optionsHtml = evt.options.map((opt, idx) => `
+        <div class="event-option" onclick="chooseEventOption(${idx})">
+            ${opt.text}
+        </div>
+    `).join('');
+
+    content.innerHTML = `
+        <h3>動態事件 (${gameState.completedEventsThisSeason + 1}/3): ${evt.title}</h3>
+        <p style="font-size:0.95rem; margin:12px 0;">${evt.desc}</p>
+        ${optionsHtml}
+    `;
+}
+
+function chooseEventOption(optIdx) {
+    const evt = gameState.seasonEvents[gameState.completedEventsThisSeason];
+    const opt = evt.options[optIdx];
+
+    if (opt.effect) {
+        Object.keys(opt.effect).forEach(k => {
+            if (gameState.stats[k] !== undefined) {
+                gameState.stats[k] = Math.min(
+                    gameState.playerTemplate.peakCap, 
+                    Math.max(30, gameState.stats[k] + opt.effect[k])
+                );
+            }
+        });
+    }
+
+    gameState.completedEventsThisSeason += 1;
+
+    const content = document.getElementById('modal-content');
+    content.innerHTML = `
+        <h3>【抉擇結果】</h3>
+        <p style="margin:16px 0; font-weight:bold; color:var(--primary);">${opt.msg}</p>
+        <div style="text-align:right;">
+            <button class="btn btn-sm" onclick="closeModal(); updateDashboardUI();">繼續</button>
+        </div>
+    `;
+}
+
+// --- 7. 例行賽與數據模擬 (包含精確的傷病機率與 PF/C 低助攻修正) ---
+function simulateFullSeason() {
+    if (gameState.hasSimulatedSeason) return;
+    gameState.hasSimulatedSeason = true;
+
+    const ovr = calculateOverall();
+    const p = gameState.playerTemplate;
+    const tend = gameState.customTendency; // 使用玩家自訂傾向
+    
+    // A. 傷病判定 (健康 78%, 輕傷 17%, 重傷 4%, 報銷 1%)
+    let gamesPlayed = 82;
+    let injuryMsg = '';
+    const randInj = Math.random();
+
+    if (randInj < 0.01) { 
+        // 1% 賽季報銷
+        gamesPlayed = Math.floor(Math.random() * 12) + 3;
+        for (let key in gameState.stats) {
+            gameState.stats[key] = Math.max(30, gameState.stats[key] - 3);
+        }
+        injuryMsg = '🚨 遭受嚴重撕裂傷！賽季報銷，整體能力值永久下降 3 點。';
+    } else if (randInj < 0.05) { 
+        // 4% 重大傷病
+        gamesPlayed = Math.floor(Math.random() * 25) + 30;
+        gameState.stats.speed = Math.max(30, gameState.stats.speed - 2);
+        injuryMsg = '🩹 遭受較重傷病，缺席半數賽季，爆發力與速度下降 2 點。';
+    } else if (randInj < 0.22) { 
+        // 17% 輕微傷病
+        gamesPlayed = 82 - (Math.floor(Math.random() * 16) + 6);
+        injuryMsg = '⚠️ 遭遇輕微扭傷缺席部分比賽，未影響長期屬性。';
+    } else {
+        // 78% 完全健康
+        gamesPlayed = Math.floor(Math.random() * 5) + 78;
+        injuryMsg = '✅ 本賽季身體狀態良好，基本滿勤！';
+    }
+
+    // B. 平均上場時間 (MPG)
+    let mpg = Math.min(38.8, Math.max(12.0, (ovr / 99) * 35.5 + (Math.random() * 2 - 1)));
+    mpg = parseFloat(mpg.toFixed(1));
+
+    // C. 依據玩家【自訂開火權】與【內外傾向】計算出手 FGA
+    let baseFga = p.initTendency.fgaBase + (ovr - 70) * 0.35;
+    let fga = (mpg / 35) * baseFga * tend.roleMultiplier;
+    fga = parseFloat(Math.max(4, Math.min(27, fga)).toFixed(1));
+
+    let fgPct = 0.38 + (gameState.stats.inside / 100) * 0.18 + (Math.random() * 0.03 - 0.015);
+    let fg3Pct = 0.25 + (gameState.stats.outside / 100) * 0.16 + (Math.random() * 0.03 - 0.015);
+    fgPct = parseFloat(Math.min(0.64, Math.max(0.35, fgPct)).toFixed(3));
+    fg3Pct = parseFloat(Math.min(0.46, Math.max(0.18, fg3Pct)).toFixed(3));
+
+    let fga3 = fga * tend.outsideRatio;
+    let fga2 = fga * tend.insideRatio;
+    let fgm3 = fga3 * fg3Pct;
+    let fgm2 = fga2 * fgPct;
+    let ftm = (fga * 0.22) * (0.68 + (gameState.stats.outside / 200));
+
+    let ppg = parseFloat(((fgm2 * 2) + (fgm3 * 3) + ftm).toFixed(1));
+
+    // D. 籃板與助攻 (修正 PF/C 助攻過高問題)
+    let posRebBonus = (p.pos.includes('C') || p.pos.includes('PF')) ? 1.45 : 0.7;
+    let rpg = parseFloat(Math.max(1.0, (mpg / 32) * (gameState.stats.reb / 10) * posRebBonus + (Math.random() * 0.8 - 0.4)).toFixed(1));
+
+    // 助攻生成權重 (現實化修正)
+    let posAstFactor = 0.30; // 預設內線 (PF/C) 助攻加成大幅調低
+    if (p.id === 'jokic') {
+        posAstFactor = 0.90; // Jokic 專屬組織中鋒特例
+    } else if (p.pos.includes('PG')) {
+        posAstFactor = 1.0;
+    } else if (p.pos.includes('SG')) {
+        posAstFactor = 0.65;
+    } else if (p.pos.includes('SF')) {
+        posAstFactor = 0.55;
+    }
+
+    // 若玩家設定「團隊優先」，助攻額外提高 15%
+    let roleAstBonus = tend.roleMultiplier < 1.0 ? 1.15 : (tend.roleMultiplier > 1.1 ? 0.88 : 1.0);
+    let rawAst = (mpg / 34) * (gameState.stats.playmaking / 10) * posAstFactor * roleAstBonus;
+    let apg = parseFloat(Math.max(0.3, rawAst + (Math.random() * 0.6 - 0.3)).toFixed(1));
+
+    let spg = parseFloat(Math.max(0.2, (gameState.stats.perDef / 100) * 2.1 + Math.random() * 0.3).toFixed(1));
+    let bpg = parseFloat(Math.max(0.1, (gameState.stats.intDef / 100) * 2.6 + Math.random() * 0.3).toFixed(1));
+
+    let plusMinus = parseFloat(((ovr - 78) * 0.35 + (gameState.team.power - 75) * 0.3 + (Math.random() * 3 - 1.5)).toFixed(1));
+
+    // E. 榮譽與季後賽
+    let honors = [];
+    if (ppg >= 27.5 && gamesPlayed > 58) honors.push('得分王');
+    if (ovr >= 85 && gamesPlayed > 50) { honors.push('全明星'); gameState.trophies.allStar++; }
+    if (ovr >= 93 && ppg >= 24.5 && gameState.team.power >= 80 && gamesPlayed > 60) { honors.push('MVP'); gameState.trophies.mvp++; }
+    if ((gameState.stats.perDef + gameState.stats.intDef) >= 175 && gamesPlayed > 60) { honors.push('DPOY'); gameState.trophies.dpoy++; }
+    if (gameState.season === 1 && ppg >= 13.0) { honors.push('ROTY'); gameState.trophies.roty++; }
+
+    let playoffResult = '未晉級季後賽';
+    let playoffPower = gameState.team.power + (ovr - 80) * 0.8 + (Math.random() * 10 - 5);
+    
+    if (playoffPower >= 78) playoffResult = '季後賽首輪/次輪';
+    if (playoffPower >= 85) playoffResult = '分區決賽';
+    if (playoffPower >= 92) {
+        playoffResult = '🏆 NBA 總冠軍';
+        gameState.trophies.rings++;
+        if (ovr >= 84) {
+            honors.push('FMVP');
+            gameState.trophies.fmvp++;
+        }
+    }
+
+    const honorText = honors.length > 0 ? honors.join(', ') : (playoffResult.includes('總冠軍') ? 'NBA 總冠軍' : '無');
+
+    const seasonRecord = {
+        season: gameState.season,
+        age: gameState.age,
+        team: gameState.team.name,
+        mpg, fga, ppg, rpg, apg, spg, bpg,
+        fgPct: (fgPct * 100).toFixed(1) + '%',
+        fg3Pct: (fg3Pct * 100).toFixed(1) + '%',
+        plusMinus,
+        honors: honorText
+    };
+    gameState.careerHistory.push(seasonRecord);
+
+    renderCareerTable();
+    showSeasonSummaryModal(seasonRecord, injuryMsg, playoffResult);
+}
+
+function renderCareerTable() {
+    const tbody = document.getElementById('career-stats-body');
+    tbody.innerHTML = '';
+    gameState.careerHistory.forEach(s => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>第 ${s.season} 季</td>
+            <td>${s.age}</td>
+            <td>${s.team}</td>
+            <td>${s.mpg}</td>
+            <td>${s.fga}</td>
+            <td><strong>${s.ppg}</strong></td>
+            <td>${s.rpg}</td>
+            <td>${s.apg}</td>
+            <td>${s.spg}</td>
+            <td>${s.bpg}</td>
+            <td>${s.fgPct}</td>
+            <td>${s.fg3Pct}</td>
+            <td>${s.plusMinus > 0 ? '+' + s.plusMinus : s.plusMinus}</td>
+            <td><span class="badge ${s.honors.includes('MVP') ? 'badge-gold' : ''}">${s.honors}</span></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// --- 8. 19-31歲自然成長邏輯 ---
+function showSeasonSummaryModal(record, injuryMsg, playoffResult) {
+    const modal = document.getElementById('modal-container');
+    const content = document.getElementById('modal-content');
+    modal.classList.remove('hidden');
+
+    let ageGrowthMsg = '';
+
+    // 19-31歲：每年能力值自然成長 +1 至 +2 點
+    if (gameState.age <= 31) {
+        const boostAmount = Math.floor(Math.random() * 2) + 1; // +1 或 +2
+        const attrKeys = ['inside', 'outside', 'playmaking', 'perDef', 'intDef', 'reb', 'speed'];
+        
+        // 隨機提升屬性以達到 Overall +1 ~ +2 效果
+        for (let i = 0; i < boostAmount * 2; i++) {
+            let randKey = attrKeys[Math.floor(Math.random() * attrKeys.length)];
+            if (gameState.stats[randKey] < gameState.playerTemplate.peakCap) {
+                gameState.stats[randKey] += 1;
+            }
+        }
+        ageGrowthMsg = `📈 19-31歲黃金生涯期：本賽季整體能力自然成長上升了 +${boostAmount} 點！`;
+    } else {
+        // 32歲以上衰退期 (Overall -2)
+        for (let k in gameState.stats) {
+            gameState.stats[k] = Math.max(30, gameState.stats[k] - 2);
+        }
+        ageGrowthMsg = '📉 31歲以上身體機能衰退期：身體素質與競技狀態下滑（Overall -2）。';
+    }
+
+    // 每賽季結束獲得 3 點可自由分配點數
+    gameState.allocPoints += 3;
+
+    content.innerHTML = `
+        <h3>第 ${gameState.season} 賽季結算報告</h3>
+        <p style="margin:8px 0;">${injuryMsg}</p>
+        <p style="margin:8px 0;"><strong>場均數據：</strong> ${record.ppg} 分 | ${record.rpg} 籃板 | ${record.apg} 助攻</p>
+        <p style="margin:8px 0;"><strong>季後賽結果：</strong> ${playoffResult}</p>
+        <p style="margin:8px 0; color:var(--primary); font-size:0.9rem;">${ageGrowthMsg}</p>
+        <p style="margin:12px 0;">🎉 休賽季獲得 <strong>3 點自由分配屬性點數</strong>！</p>
+        <div style="text-align:right; margin-top:16px;">
+            <button class="btn btn-sm" onclick="advanceToNextSeason()">進入下一賽季 / 分配屬性</button>
+        </div>
+    `;
+}
+
+function advanceToNextSeason() {
+    closeModal();
+    gameState.season += 1;
+    gameState.age += 1;
+
+    const curOvr = calculateOverall();
+    if (gameState.age >= 40 || (gameState.age >= 38 && Math.random() < 0.5) || curOvr < 65) {
+        triggerRetirement();
+    } else {
+        initAttributeAllocation();
+    }
+}
+
+// --- 9. 退役總結 ---
+function triggerRetirement() {
+    showView('view-summary');
+    
+    let totalPts = 0;
+    gameState.careerHistory.forEach(s => {
+        totalPts += Math.round(s.ppg * 75);
+    });
+
+    document.getElementById('summary-player-title').innerText = `${gameState.playerTemplate.name} 的傳奇生涯圓滿落幕`;
+    document.getElementById('sum-seasons').innerText = `${gameState.season - 1} 個賽季`;
+    document.getElementById('sum-pts').innerText = totalPts.toLocaleString();
+    document.getElementById('sum-rings').innerText = gameState.trophies.rings;
+    document.getElementById('sum-mvps').innerText = gameState.trophies.mvp;
+    document.getElementById('sum-fmvps').innerText = gameState.trophies.fmvp;
+    document.getElementById('sum-allstars').innerText = gameState.trophies.allStar;
+
+    let hofStatus = 'NBA 角色球員';
+    if (gameState.trophies.mvp >= 2 || gameState.trophies.rings >= 3) {
+        hofStatus = '🏆 名人堂第一候選人 / GOAT 歷史超巨';
+    } else if (gameState.trophies.mvp >= 1 || gameState.trophies.rings >= 1 || gameState.trophies.allStar >= 5) {
+        hofStatus = '🌟 奈史密斯籃球名人堂成員 (Hall of Fame)';
+    } else if (gameState.trophies.allStar >= 2) {
+        hofStatus = '⭐ NBA 全明星級別球星';
+    }
+
+    document.getElementById('sum-hof-status').innerText = hofStatus;
+}
+
+window.onload = () => {
+    initPlayerSelection();
+};
+</script>
+</body>
+</html>
