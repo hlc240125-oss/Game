@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NBA 球星人生模擬器 2.0 (Fixed Version)</title>
+  <style>
+    :root {
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --accent: #059669;
+      --danger: #dc2626;
+      --warning: #d97706;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08);
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-main); line-height: 1.5; min-height: 100vh; display: flex; flex-direction: column; }
+
+    header { background: var(--card-bg); border-bottom: 1px solid var(--border-color); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    header h1 { font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
+
+    .container { max-width: 1200px; width: 100%; margin: 0 auto; padding: 1.5rem 1rem; flex: 1; }
+    .page { display: none; }
+    .page.active { display: block; animation: fadeIn 0.25s ease-in-out; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Cards & Buttons */
+    .landing-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 3rem 2rem; text-align: center; box-shadow: var(--shadow-md); max-width: 650px; margin: 2rem auto; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; padding: 0.65rem 1.25rem; font-size: 0.95rem; font-weight: 600; border-radius: var(--radius); border: none; cursor: pointer; transition: all 0.2s ease; gap: 0.4rem; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
+    .btn-outline:hover { background: #f1f5f9; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-success { background: var(--accent); color: white; }
+    .btn-warning { background: var(--warning); color: white; }
+    .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.85rem; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Grid Layouts */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.25rem; margin-top: 1rem; }
+    .player-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 1.25rem; cursor: pointer; transition: all 0.2s ease; }
+    .player-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--primary); }
+    .player-card .avatar { width: 60px; height: 60px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; margin: 0 auto 0.75rem auto; }
+    .stat-badge { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 0.3rem 0.5rem; background: #f1f5f9; border-radius: 6px; margin-top: 0.35rem; }
+
+    /* Dashboard & Tabs */
+    .dashboard-header { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem; }
+    .tabs { display: flex; gap: 0.5rem; border-bottom: 1px solid var(--border-color); margin-bottom: 1.25rem; overflow-x: auto; }
+    .tab-btn { padding: 0.65rem 1.1rem; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .panel { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow-sm); margin-bottom: 1.25rem; }
+    .attr-row { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px dashed var(--border-color); }
+    .attr-btn { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border-color); background: white; font-weight: bold; cursor: pointer; }
+
+    /* Tier & Meters */
+    .tier-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+    .tier-goat { background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; }
+    .tier-mvp { background: #fee2e2; color: #991b1b; }
+    .tier-allnba { background: #e0e7ff; color: #3730a3; }
+    .tier-allstar { background: #dbeafe; color: #1e40af; }
+    .tier-starter { background: #dcfce7; color: #166534; }
+    .tier-rotation { background: #f3f4f6; color: #374151; }
+
+    .meter-container { background: #e2e8f0; border-radius: 10px; height: 12px; width: 100px; overflow: hidden; display: inline-block; vertical-align: middle; }
+    .meter-fill { height: 100%; background: var(--accent); transition: width 0.3s; }
+
+    /* Tables & Modals */
+    .table-wrapper { overflow-x: auto; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius); }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem; }
+    th, td { padding: 0.65rem 0.85rem; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
+    th { background: #f8fafc; font-weight: 600; color: var(--text-muted); }
+
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.4); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 1rem; }
+    .modal-overlay.active { display: flex; }
+    .modal-content { background: var(--card-bg); border-radius: var(--radius); max-width: 600px; width: 100%; padding: 1.75rem; box-shadow: var(--shadow-lg); border: 1px solid var(--border-color); max-height: 85vh; overflow-y: auto; }
+
+    .choice-btn { width: 100%; text-align: left; padding: 0.75rem 1rem; background: white; border: 1px solid var(--border-color); border-radius: 6px; margin-top: 0.5rem; cursor: pointer; transition: all 0.2s; }
+    .choice-btn:hover { border-color: var(--primary); background: #f0f9ff; }
+
+    .stat-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .slider-box { margin: 1rem 0; }
+    .slider-box label { display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.3rem; }
+    .slider-box input[type="range"] { width: 100%; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🏀 NBA 球星模擬器 2.0</h1>
+    <div style="display: flex; gap: 1rem; align-items: center;">
+      <button id="header-retire-btn" class="btn btn-danger btn-sm" onclick="confirmRetire()" style="display: none;">宣佈退役 🚪</button>
+      <div id="header-user-status" style="font-size: 0.85rem; color: var(--text-muted);">改寫你的 NBA 生涯！</div>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- PAGE 1: Landing Page -->
+    <div id="page-landing" class="page active">
+      <div class="landing-card">
+        <h2>NBA 球星人生模擬器 Pro</h2>
+        <p>自訂投籃傾向、解鎖細緻隊伍交易、累積教練喜愛度並依據真實數據角逐 MVP、全明星與最佳陣容！</p>
+        <button class="btn btn-primary" style="font-size: 1.1rem; padding: 0.8rem 2.2rem;" onclick="navigateTo('page-select')">開始遊戲</button>
+      </div>
+    </div>
+
+    <!-- PAGE 2: Player Selection -->
+    <div id="page-select" class="page">
+      <h2>選擇你的球星</h2>
+      <p style="color: var(--text-muted); margin-bottom: 1rem;">選擇一位巨星作為範本，開啟你的人生的新人賽季。</p>
+      <div id="player-grid" class="grid"></div>
+    </div>
+
+    <!-- PAGE 3: Attribute Allocation -->
+    <div id="page-alloc" class="page">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <div>
+          <h2>能力點數分配</h2>
+          <p style="color: var(--text-muted);">剩餘可分配點數: <strong id="alloc-points-left" style="color: var(--primary); font-size: 1.2rem;">10</strong> 點</p>
+        </div>
+        <button class="btn btn-primary" onclick="confirmAllocation()">確認分配，進入賽季</button>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+        <div class="panel">
+          <h3 style="margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.4rem;">球員基本能力值</h3>
+          <div id="alloc-attr-list"></div>
+        </div>
+
+        <div class="panel">
+          <h3 style="margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.4rem;">球員定位與潛力上限</h3>
+          <p style="margin-bottom:0.4rem;"><strong>球員姓名：</strong> <span id="alloc-player-name">-</span></p>
+          <p style="margin-bottom:0.4rem;"><strong>當前 Overall：</strong> <span id="alloc-player-ovr" style="font-size: 1.2rem; font-weight: bold; color: var(--primary);">-</span></p>
+          <p style="margin-bottom:0.4rem;"><strong>潛力天花板 (Cap)：</strong> <span id="alloc-player-cap" style="font-weight: bold;">-</span></p>
+          <p style="margin-bottom:0.4rem;"><strong>當前評級：</strong> <span id="alloc-player-tier" class="tier-badge">-</span></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 4: Main Season Hub -->
+    <div id="page-hub" class="page">
+      <!-- Top Info Header -->
+      <div class="dashboard-header">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <div id="hub-avatar" style="width: 55px; height: 55px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">🏀</div>
+          <div>
+            <h2 id="hub-player-name">球員名稱</h2>
+            <div style="font-size: 0.85rem; color: var(--text-muted);">
+              <span id="hub-player-pos">PG</span> | <span id="hub-player-age">19</span> 歲 | 第 <span id="hub-season-year">1</span> 季 (<span id="hub-year-str">2024</span>)
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 1.25rem; text-align: center; align-items: center;">
+          <div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Overall</div>
+            <div id="hub-ovr" style="font-size: 1.3rem; font-weight: bold; color: var(--primary);">75</div>
+          </div>
+
+          <div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">教練喜愛度</div>
+            <div style="font-weight: bold; color: var(--accent);" id="hub-trust-txt">75%</div>
+            <div class="meter-container"><div id="hub-trust-meter" class="meter-fill" style="width: 75%;"></div></div>
+          </div>
+
+          <div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">預估出場時間</div>
+            <div id="hub-mpg" style="font-size: 1.1rem; font-weight: bold;">30.0 分鐘</div>
+          </div>
+
+          <div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">所屬球隊</div>
+            <div id="hub-team" style="font-size: 1rem; font-weight: bold;">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Nav Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(event, 'tab-dashboard')">賽季大廳</button>
+        <button class="tab-btn" onclick="switchTab(event, 'tab-tendency')">戰術與投籃偏向</button>
+        <button class="tab-btn" onclick="switchTab(event, 'tab-trade')">球隊陣容與交易中心</button>
+        <button class="tab-btn" onclick="switchTab(event, 'tab-history')">生涯數據與榮譽</button>
+      </div>
+
+      <!-- TAB 1: Main Season Hub Dashboard -->
+      <div id="tab-dashboard" class="tab-content">
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.25rem;">
+          <div>
+            <div class="panel">
+              <h3 style="margin-bottom: 0.75rem;">賽季進程</h3>
+              <p style="margin-bottom: 1rem; color: var(--text-muted);" id="hub-stage-desc">請先完成本賽季的 3 次動態事件。</p>
+              
+              <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <button id="btn-trigger-event" class="btn btn-primary" onclick="triggerNextEvent()">進行賽季動態事件 (還剩 3 次)</button>
+                <button id="btn-sim-season" class="btn btn-success" onclick="simulateSeason()" disabled>模擬常規賽與季後賽</button>
+                <button id="btn-next-season" class="btn btn-outline" onclick="startNextSeasonFlow()" style="display: none;">進入下一賽季</button>
+              </div>
+            </div>
+
+            <div class="panel">
+              <h3 style="margin-bottom: 0.75rem;">當前戰術設定預估</h3>
+              <div class="stat-grid-3">
+                <div style="background: #f8fafc; padding: 0.75rem; border-radius: 8px; text-align: center;">
+                  <div style="font-size: 0.75rem; color: var(--text-muted);">外線投射偏向</div>
+                  <div id="hub-outside-ratio" style="font-weight: bold; font-size: 1.1rem; color: var(--primary);">50%</div>
+                </div>
+                <div style="background: #f8fafc; padding: 0.75rem; border-radius: 8px; text-align: center;">
+                  <div style="font-size: 0.75rem; color: var(--text-muted);">進攻欲望 (Usage)</div>
+                  <div id="hub-usage-txt" style="font-weight: bold; font-size: 1.1rem; color: var(--accent);">中等 (1.0x)</div>
+                </div>
+                <div style="background: #f8fafc; padding: 0.75rem; border-radius: 8px; text-align: center;">
+                  <div style="font-size: 0.75rem; color: var(--text-muted);">預估每場出手 (FGA)</div>
+                  <div id="est-fga" style="font-weight: bold; font-size: 1.1rem;">15.0 次</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="panel" style="min-height: 250px;">
+              <h3 style="margin-bottom: 0.5rem;">賽季動態日誌</h3>
+              <div id="season-log" style="font-size: 0.85rem; color: var(--text-main); max-height: 220px; overflow-y: auto;">
+                <p style="color: var(--text-muted);">點擊「進行賽季動態事件」開啟本賽季抉擇...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: Tactical & Shot Tendencies -->
+      <div id="tab-tendency" class="tab-content" style="display: none;">
+        <div class="panel">
+          <h3 style="margin-bottom: 0.5rem;">自訂投籃偏向與進攻欲望</h3>
+          <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;">根據自己的能力值自由調整打法！外線比例越高三分出手越多；進攻欲望越高出手數越多。</p>
+
+          <div class="slider-box">
+            <label>
+              <span>投籃區域選擇 (籃下突破 vs 外線投射)</span>
+              <span id="slider-ratio-val" style="color: var(--primary);">50% 外線 / 50% 內線</span>
+            </label>
+            <input type="range" id="input-outside-ratio" min="10" max="90" value="50" oninput="updateTendencySettings()">
+          </div>
+
+          <div class="slider-box" style="margin-top: 1.5rem;">
+            <label>
+              <span>進攻欲望 / 球權使用率 (Usage Rate)</span>
+              <span id="slider-usage-val" style="color: var(--accent);">中等 (1.0x 出手數)</span>
+            </label>
+            <input type="range" id="input-usage-rate" min="0.8" max="1.4" step="0.1" value="1.0" oninput="updateTendencySettings()">
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: Roster & Trade System -->
+      <div id="tab-trade" class="tab-content" style="display: none;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+          <!-- Current Team Roster -->
+          <div class="panel">
+            <h3 style="margin-bottom: 0.5rem;">當前球隊陣容成員與資產</h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;" id="team-roster-title">所屬球隊隊友一覽：</p>
+            <div class="table-wrapper" style="max-height: 240px;">
+              <table>
+                <thead>
+                  <tr><th>球員/資產</th><th>位置</th><th>Overall</th><th>年薪</th></tr>
+                </thead>
+                <tbody id="current-roster-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Trade Generator -->
+          <div class="panel">
+            <h3 style="margin-bottom: 0.5rem;">進行球隊交易 (Trade)</h3>
+            
+            <div style="margin-bottom: 0.8rem;">
+              <label style="font-size: 0.85rem; font-weight: bold;">1. 選擇目標球隊：</label>
+              <select id="trade-target-team-select" style="width: 100%; padding: 0.4rem; border-radius: 6px; margin-top: 0.2rem;" onchange="onTradeTargetTeamChange()"></select>
+            </div>
+
+            <div style="margin-bottom: 0.8rem;">
+              <label style="font-size: 0.85rem; font-weight: bold;">2. 想要交易獲得的球員：</label>
+              <select id="trade-target-player-select" style="width: 100%; padding: 0.4rem; border-radius: 6px; margin-top: 0.2rem;"></select>
+            </div>
+
+            <div style="margin-bottom: 0.8rem;">
+              <label style="font-size: 0.85rem; font-weight: bold;">3. 我方送出的籌碼（隊友/選秀權/自己）：</label>
+              <select id="trade-my-asset-select" style="width: 100%; padding: 0.4rem; border-radius: 6px; margin-top: 0.2rem;"></select>
+            </div>
+
+            <button class="btn btn-warning btn-sm" style="width: 100%; margin-top: 0.5rem;" onclick="executeAssetTrade()">提交交易方案</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: Career History -->
+      <div id="tab-history" class="tab-content" style="display: none;">
+        <div class="panel">
+          <h3 style="margin-bottom: 0.75rem;">生涯累積數據與榮譽</h3>
+          <div class="stat-grid-3">
+            <div style="background: #f8fafc; padding: 0.75rem; border-radius: 8px;">
+              <div>總得分: <strong id="hist-pts">0</strong></div>
+              <div>總籃板: <strong id="hist-reb">0</strong></div>
+              <div>總助攻: <strong id="hist-ast">0</strong></div>
+            </div>
+            <div style="background: #f8fafc; padding: 0.75rem; border-radius: 8px;">
+              <div>總冠軍: <strong id="hist-titles">0</strong></div>
+              <div>FMVP: <strong id="hist-fmvps">0</strong></div>
+              <div>MVP: <strong id="hist-mvps">0</strong></div>
+            </div>
+            <div style="background: #f8fafc; padding: 0.75rem; border-radius: 8px;">
+              <div>全明星次數: <strong id="hist-allstar">0</strong></div>
+              <div>最佳陣容次數: <strong id="hist-allnba">0</strong></div>
+              <div>生涯薪水: <strong id="hist-earnings">$0M</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3 style="margin-bottom: 0.75rem;">逐年賽季詳細數據</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>年份</th><th>球隊</th><th>MPG</th><th>得分</th><th>籃板</th><th>助攻</th><th>抄截</th><th>阻攻</th><th>主要榮譽</th>
+                </tr>
+              </thead>
+              <tbody id="history-table-body">
+                <tr><td colspan="9" style="text-align: center; color: var(--text-muted);">尚無賽季數據</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 5: End Game Retirement -->
+    <div id="page-end" class="page">
+      <div class="landing-card" style="max-width: 750px;">
+        <h2 style="color: var(--primary);">生涯退役總結報告</h2>
+        <p style="margin-bottom: 1.25rem;">你的 NBA 職業生涯正式劃下句點！以下是你的終極答卷：</p>
+
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1.5rem; text-align: left;">
+          <h3 id="end-player-title" style="margin-bottom: 0.75rem; text-align: center;">-</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.9rem;">
+            <p><strong>生涯總得分：</strong> <span id="end-pts">0</span> 分</p>
+            <p><strong>生涯總籃板：</strong> <span id="end-reb">0</span> 個</p>
+            <p><strong>生涯總助攻：</strong> <span id="end-ast">0</span> 次</p>
+            <p><strong>生涯總薪資：</strong> <span id="end-earnings">$0M</span></p>
+            <p><strong>總冠軍：</strong> <span id="end-titles">0</span> 次</p>
+            <p><strong>FMVP：</strong> <span id="end-fmvps">0</span> 次</p>
+            <p><strong>MVP：</strong> <span id="end-mvps">0</span> 次</p>
+            <p><strong>全明星 (All-Star)：</strong> <span id="end-allstar">0</span> 次</p>
+            <p><strong>最佳陣容 (All-NBA)：</strong> <span id="end-allnba">0</span> 次</p>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="location.reload()">開始新遊戲</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Dynamic Event Choice Modal -->
+  <div id="modal-event" class="modal-overlay">
+    <div class="modal-content">
+      <h3 id="event-modal-title" style="margin-bottom: 0.4rem; color: var(--primary);">賽季動態事件</h3>
+      <p id="event-modal-desc" style="color: var(--text-muted); margin-bottom: 1.25rem;"></p>
+      <div id="event-modal-choices"></div>
+    </div>
+  </div>
+
+  <!-- Trade/Alert Modal -->
+  <div id="modal-alert" class="modal-overlay">
+    <div class="modal-content">
+      <h3 id="alert-modal-title" style="margin-bottom: 0.4rem;">提示信息</h3>
+      <p id="alert-modal-desc" style="margin-bottom: 1.25rem; color: var(--text-muted);"></p>
+      <button class="btn btn-primary btn-sm" onclick="closeModal('modal-alert')">確定</button>
+    </div>
+  </div>
+
+  <script>
+    // Expanded NBA Teams Data with Full Rosters
+    const NBA_TEAMS = [
+      {
+        id: 'LAL', name: '洛杉磯湖人', tier: '爭冠球隊',
+        roster: [
+          { name: 'LeBron James', pos: 'SF', ovr: 95, salary: 48.0 },
+          { name: 'Anthony Davis', pos: 'PF/C', ovr: 94, salary: 43.0 },
+          { name: 'D’Angelo Russell', pos: 'PG', ovr: 81, salary: 18.0 },
+          { name: 'Austin Reaves', pos: 'SG', ovr: 82, salary: 13.0 },
+          { name: 'Rui Hachimura', pos: 'PF', ovr: 78, salary: 17.0 }
+        ],
+        draftPicks: ['2025 年首輪選秀權', '2026 年首輪選秀權']
+      },
+      {
+        id: 'BOS', name: '波士頓塞爾特人', tier: '爭冠球隊',
+        roster: [
+          { name: 'Jayson Tatum', pos: 'SF', ovr: 95, salary: 35.0 },
+          { name: 'Jaylen Brown', pos: 'SG', ovr: 92, salary: 49.0 },
+          { name: 'Kristaps Porziņģis', pos: 'C', ovr: 87, salary: 36.0 },
+          { name: 'Jrue Holiday', pos: 'PG', ovr: 86, salary: 30.0 },
+          { name: 'Derrick White', pos: 'SG', ovr: 85, salary: 19.0 }
+        ],
+        draftPicks: ['2025 年首輪選秀權']
+      },
+      {
+        id: 'GSW', name: '金州勇士', tier: '季後賽球隊',
+        roster: [
+          { name: 'Stephen Curry', pos: 'PG', ovr: 95, salary: 51.0 },
+          { name: 'Draymond Green', pos: 'PF', ovr: 83, salary: 24.0 },
+          { name: 'Andrew Wiggins', pos: 'SF', ovr: 80, salary: 24.0 },
+          { name: 'Jonathan Kuminga', pos: 'PF', ovr: 82, salary: 7.5 }
+        ],
+        draftPicks: ['2025 年首輪選秀權', '2027 年首輪選秀權']
+      },
+      {
+        id: 'DEN', name: '丹佛金塊', tier: '爭冠球隊',
+        roster: [
+          { name: 'Nikola Jokić', pos: 'C', ovr: 98, salary: 51.0 },
+          { name: 'Jamal Murray', pos: 'PG', ovr: 88, salary: 36.0 },
+          { name: 'Aaron Gordon', pos: 'PF', ovr: 84, salary: 22.0 },
+          { name: 'Michael Porter Jr.', pos: 'SF', ovr: 83, salary: 35.0 }
+        ],
+        draftPicks: ['2026 年首輪選秀權']
+      },
+      {
+        id: 'PHX', name: '鳳凰城太陽', tier: '爭冠球隊',
+        roster: [
+          { name: 'Kevin Durant', pos: 'PF', ovr: 94, salary: 51.0 },
+          { name: 'Devin Booker', pos: 'SG', ovr: 93, salary: 49.0 },
+          { name: 'Bradley Beal', pos: 'PG', ovr: 85, salary: 50.0 },
+          { name: 'Jusuf Nurkić', pos: 'C', ovr: 79, salary: 18.0 }
+        ],
+        draftPicks: ['2028 年首輪選秀權']
+      },
+      {
+        id: 'SAS', name: '聖安東尼奧馬刺', tier: '重建球隊',
+        roster: [
+          { name: 'Victor Wembanyama', pos: 'C', ovr: 92, salary: 12.0 },
+          { name: 'Chris Paul', pos: 'PG', ovr: 80, salary: 11.0 },
+          { name: 'Devin Vassell', pos: 'SG', ovr: 81, salary: 29.0 },
+          { name: 'Jeremy Sochan', pos: 'PF', ovr: 77, salary: 5.5 }
+        ],
+        draftPicks: ['2025 年首輪選秀權', '2025 年老鷹首輪權', '2026 年首輪選秀權']
+      }
+    ];
+
+    const STAR_PLAYERS = [
+      { id: 'lbj', name: '勒邦·占士 (LeBron James)', pos: 'SF', rookieAge: 19, realDraftPick: 1, cap: 99, inside: 85, outside: 65, playmaking: 80, perDef: 75, intDef: 70, rebounding: 72, athleticism: 95 },
+      { id: 'curry', name: '史提芬·居里 (Stephen Curry)', pos: 'PG', rookieAge: 21, realDraftPick: 7, cap: 98, inside: 70, outside: 92, playmaking: 78, perDef: 60, intDef: 45, rebounding: 50, athleticism: 82 },
+      { id: 'giannis', name: '揚尼斯·安迪度高普 (Giannis Antetokounmpo)', pos: 'PF', rookieAge: 19, realDraftPick: 15, cap: 98, inside: 88, outside: 30, playmaking: 60, perDef: 70, intDef: 80, rebounding: 82, athleticism: 95 },
+      { id: 'jokic', name: '尼古拉·積奇 (Nikola Jokić)', pos: 'C', rookieAge: 20, realDraftPick: 41, cap: 98, inside: 80, outside: 68, playmaking: 85, perDef: 50, intDef: 72, rebounding: 82, athleticism: 60 },
+      { id: 'wemby', name: '維克托·文班亞馬 (Victor Wembanyama)', pos: 'C', rookieAge: 19, realDraftPick: 1, cap: 97, inside: 75, outside: 65, playmaking: 58, perDef: 68, intDef: 90, rebounding: 82, athleticism: 88 }
+    ];
+
+    // Rich Dynamic Events Pool
+    const EVENT_POOL = [
+      {
+        title: "教練的防守戰術要求",
+        desc: "主教練在訓練課上要求你將精力更多地放在防守端和協防上。",
+        choices: [
+          { text: "聽從教練安排，專注防守", changes: { perDef: 2, coachTrust: 12 }, textRes: "教練對你的團隊精神大加讚賞！[外防 +2, 教練喜愛度 +12%]" },
+          { text: "堅持進攻第一，質疑教練安排", changes: { inside: 1, coachTrust: -10 }, textRes: "與教練產生爭執！[籃下 +1, 教練喜愛度 -10%]" }
+        ]
+      },
+      {
+        title: "深夜加練投籃選擇",
+        desc: "你決定在休賽期或比賽空檔進行個人技術特訓。",
+        choices: [
+          { text: "苦練三分球與拉開空間", changes: { outside: 2, coachTrust: 5 }, textRes: "外線投射能力提升！[外線 +2, 教練喜愛度 +5%]" },
+          { text: "加強身體對抗與力量訓練", changes: { athleticism: 2, inside: 1 }, textRes: "身體素質增強！[體能 +2, 籃下 +1]" }
+        ]
+      },
+      {
+        title: "媒體賽後訪問發言",
+        desc: "球隊剛經歷了一場慘敗，記者問你對隊友表現的看法。",
+        choices: [
+          { text: "承擔責任，為隊友說話", changes: { playmaking: 1, coachTrust: 8 }, textRes: "展現領袖氣質，隊友與教練非常信任你！[組織 +1, 教練喜愛度 +8%]" },
+          { text: "批評球隊管理層與隊友支援不夠", changes: { outside: 1, coachTrust: -12 }, textRes: "更衣室關係緊張！[教練喜愛度 -12%]" }
+        ]
+      },
+      {
+        title: "商業代言與訓練平衡",
+        desc: "一家知名品牌提供百萬合約，但需要你飛往海外參加商業活動。",
+        choices: [
+          { text: "推掉代言，留在球館訓練", changes: { inside: 1, outside: 1, coachTrust: 5 }, textRes: "展現敬業態度！[籃下 +1, 外線 +1, 教練喜愛度 +5%]" },
+          { text: "接受代言，擴大商業影響力", changes: { potential: 1, coachTrust: -3 }, textRes: "個人品牌升值！[潛力 +1, 教練喜愛度 -3%]" }
+        ]
+      }
+    ];
+
+    // Global Dynamic Game State
+    let gameState = {
+      player: null,
+      age: 19,
+      seasonYearIndex: 1,
+      calendarYear: 2024,
+      draftPick: 1,
+      currentTeam: null,
+      contract: { years: 4, salary: 12.5 },
+      attributes: {},
+      potentialCap: 95,
+      overall: 70,
+      allocatablePoints: 10,
+      seasonStage: 'pre_season',
+      eventsRemainingThisSeason: 3,
+      currentSeasonEventPool: [],
+      coachTrust: 75, // 0 to 100%
+      tendency: {
+        outsideRatio: 50, // 10% to 90%
+        usageRate: 1.0   // 0.8 to 1.4
+      },
+      historyStats: [],
+      careerTotals: { pts: 0, reb: 0, ast: 0, games: 0, titles: 0, fmvps: 0, mvps: 0, allStar: 0, allNBA: 0, earnings: 0 }
+    };
+
+    let allocatedThisSession = { inside: 0, outside: 0, playmaking: 0, perDef: 0, intDef: 0, rebounding: 0, athleticism: 0 };
+
+    function calculateOverall(attr) {
+      const sum = attr.inside + attr.outside + attr.playmaking + attr.perDef + attr.intDef + attr.rebounding + attr.athleticism;
+      let avg = Math.round(sum / 7);
+      return Math.min(gameState.potentialCap, avg);
+    }
+
+    function calculateMPG() {
+      const baseMpg = gameState.overall >= 88 ? 34 : (gameState.overall >= 78 ? 28 : 18);
+      const trustMultiplier = 0.6 + (gameState.coachTrust / 100) * 0.6; // 0.6x to 1.2x
+      return Math.min(38, Math.max(10, Number((baseMpg * trustMultiplier).toFixed(1))));
+    }
+
+    function navigateTo(pageId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(pageId).classList.add('active');
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove('active');
+    }
+
+    function showAlert(title, desc) {
+      document.getElementById('alert-modal-title').innerText = title;
+      document.getElementById('alert-modal-desc').innerText = desc;
+      document.getElementById('modal-alert').classList.add('active');
+    }
+
+    function confirmRetire() {
+      if (confirm("確定要宣佈退役，結束你的傳奇 NBA 生涯嗎？")) {
+        triggerEndGame();
+      }
+    }
+
+    // Page 2: Select Player
+    function initPlayerSelectGrid() {
+      const grid = document.getElementById('player-grid');
+      grid.innerHTML = '';
+
+      STAR_PLAYERS.forEach(p => {
+        const tempAttr = { inside: p.inside, outside: p.outside, playmaking: p.playmaking, perDef: p.perDef, intDef: p.intDef, rebounding: p.rebounding, athleticism: p.athleticism };
+        const tempOvr = Math.round(Object.values(tempAttr).reduce((a,b)=>a+b,0)/7);
+
+        const card = document.createElement('div');
+        card.className = 'player-card';
+        card.onclick = () => selectPlayer(p);
+        card.innerHTML = `
+          <div class="avatar">🏀</div>
+          <h3>${p.name}</h3>
+          <div style="text-align:center; color:var(--text-muted); font-size:0.85rem; margin-bottom:0.5rem;">位置: ${p.pos}</div>
+          <div class="stat-badge"><span>初始 Overall</span><strong>${tempOvr}</strong></div>
+          <div class="stat-badge"><span>潛力上限 (Cap)</span><strong style="color:var(--primary);">${p.cap}</strong></div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function selectPlayer(p) {
+      gameState.player = p;
+      gameState.age = p.rookieAge;
+      gameState.potentialCap = p.cap;
+      gameState.attributes = { inside: p.inside, outside: p.outside, playmaking: p.playmaking, perDef: p.perDef, intDef: p.intDef, rebounding: p.rebounding, athleticism: p.athleticism };
+      gameState.overall = calculateOverall(gameState.attributes);
+      gameState.allocatablePoints = 10;
+      gameState.coachTrust = 75;
+      allocatedThisSession = { inside: 0, outside: 0, playmaking: 0, perDef: 0, intDef: 0, rebounding: 0, athleticism: 0 };
+
+      // Clone team
+      const rawTeam = NBA_TEAMS[Math.floor(Math.random() * NBA_TEAMS.length)];
+      gameState.currentTeam = JSON.parse(JSON.stringify(rawTeam));
+
+      document.getElementById('header-retire-btn').style.display = 'inline-flex';
+      showAlert("選秀大會 🎯", `你被 ${gameState.currentTeam.name} 選中！獲得 10 點自由分配點數！`);
+
+      renderAllocPage();
+      navigateTo('page-alloc');
+    }
+
+    function renderAllocPage() {
+      document.getElementById('alloc-points-left').innerText = gameState.allocatablePoints;
+      document.getElementById('alloc-player-name').innerText = gameState.player.name;
+      document.getElementById('alloc-player-ovr').innerText = gameState.overall;
+      document.getElementById('alloc-player-cap').innerText = gameState.potentialCap;
+
+      // Update Tier Badge Display (Fixed bug #4)
+      let tierText = "輪換球員";
+      let tierClass = "tier-rotation";
+      if (gameState.overall >= 95) { tierText = "GOAT 級別"; tierClass = "tier-goat"; }
+      else if (gameState.overall >= 90) { tierText = "MVP 巨星"; tierClass = "tier-mvp"; }
+      else if (gameState.overall >= 85) { tierText = "全明星"; tierClass = "tier-allstar"; }
+      else if (gameState.overall >= 80) { tierText = "合格首發"; tierClass = "tier-starter"; }
+
+      const tierEl = document.getElementById('alloc-player-tier');
+      tierEl.innerText = tierText;
+      tierEl.className = `tier-badge ${tierClass}`;
+
+      const attrNames = { inside: '籃下進攻', outside: '外線投射', playmaking: '組織傳球', perDef: '外線防守', intDef: '內線防守', rebounding: '籃板能力', athleticism: '體能/速度' };
+
+      const container = document.getElementById('alloc-attr-list');
+      container.innerHTML = '';
+
+      Object.keys(gameState.attributes).forEach(key => {
+        const row = document.createElement('div');
+        row.className = 'attr-row';
+        row.innerHTML = `
+          <span>${attrNames[key]}</span>
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <button class="attr-btn" onclick="adjustAttr('${key}', -1)">-</button>
+            <strong style="width:25px; text-align:center;">${gameState.attributes[key]}</strong>
+            <button class="attr-btn" onclick="adjustAttr('${key}', 1)">+</button>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function adjustAttr(key, delta) {
+      if (delta > 0) {
+        if (gameState.allocatablePoints <= 0) return;
+        if (gameState.attributes[key] >= gameState.potentialCap) return;
+        gameState.attributes[key] += 1;
+        gameState.allocatablePoints -= 1;
+        allocatedThisSession[key] += 1;
+      } else {
+        if (allocatedThisSession[key] <= 0) return;
+        gameState.attributes[key] -= 1;
+        gameState.allocatablePoints += 1;
+        allocatedThisSession[key] -= 1;
+      }
+      gameState.overall = calculateOverall(gameState.attributes);
+      renderAllocPage();
+    }
+
+    function confirmAllocation() {
+      gameState.seasonStage = 'pre_season';
+      gameState.eventsRemainingThisSeason = 3;
+      prepareSeasonEvents();
+      document.getElementById('season-log').innerHTML = `<p style="color: var(--text-muted);">第 ${gameState.seasonYearIndex} 賽季開始！請進行動態事件抉擇...</p>`;
+      updateHubUI();
+      navigateTo('page-hub');
+    }
+
+    function prepareSeasonEvents() {
+      const shuffled = [...EVENT_POOL].sort(() => 0.5 - Math.random());
+      gameState.currentSeasonEventPool = shuffled.slice(0, 3);
+    }
+
+    function updateHubUI() {
+      document.getElementById('hub-player-name').innerText = gameState.player.name;
+      document.getElementById('hub-player-pos').innerText = gameState.player.pos;
+      document.getElementById('hub-player-age').innerText = gameState.age;
+      document.getElementById('hub-season-year').innerText = gameState.seasonYearIndex;
+      document.getElementById('hub-year-str').innerText = gameState.calendarYear;
+
+      document.getElementById('hub-ovr').innerText = gameState.overall;
+      document.getElementById('hub-trust-txt').innerText = `${gameState.coachTrust}%`;
+      document.getElementById('hub-trust-meter').style.width = `${gameState.coachTrust}%`;
+
+      const mpg = calculateMPG();
+      document.getElementById('hub-mpg').innerText = `${mpg} 分鐘`;
+      document.getElementById('hub-team').innerText = gameState.currentTeam.name;
+
+      document.getElementById('hub-outside-ratio').innerText = `${gameState.tendency.outsideRatio}% 外線`;
+      document.getElementById('hub-usage-txt').innerText = `${gameState.tendency.usageRate}x`;
+
+      const estFga = ((gameState.overall / 99) * (mpg / 36) * 18 * gameState.tendency.usageRate).toFixed(1);
+      document.getElementById('est-fga').innerText = `${estFga} 次`;
+
+      const btnEvt = document.getElementById('btn-trigger-event');
+      const btnSim = document.getElementById('btn-sim-season');
+      const btnNext = document.getElementById('btn-next-season');
+
+      if (gameState.seasonStage === 'pre_season') {
+        btnEvt.style.display = 'inline-flex';
+        btnEvt.innerText = `進行賽季動態事件 (還剩 ${gameState.eventsRemainingThisSeason} 次)`;
+        btnSim.disabled = true;
+        btnNext.style.display = 'none';
+      } else if (gameState.seasonStage === 'events_done') {
+        btnEvt.style.display = 'none';
+        btnSim.disabled = false;
+        btnNext.style.display = 'none';
+      } else if (gameState.seasonStage === 'sim_done') {
+        btnEvt.style.display = 'none';
+        btnSim.disabled = true;
+        btnNext.style.display = 'inline-flex';
+      }
+
+      renderRosterTab();
+    }
+
+    function updateTendencySettings() {
+      const outRatio = parseInt(document.getElementById('input-outside-ratio').value);
+      const usageRate = parseFloat(document.getElementById('input-usage-rate').value);
+
+      gameState.tendency.outsideRatio = outRatio;
+      gameState.tendency.usageRate = usageRate;
+
+      document.getElementById('slider-ratio-val').innerText = `${outRatio}% 外線 / ${100 - outRatio}% 內線`;
+      document.getElementById('slider-usage-val').innerText = `${usageRate}x 出手權`;
+
+      updateHubUI();
+    }
+
+    function triggerNextEvent() {
+      if (gameState.eventsRemainingThisSeason <= 0) return;
+
+      const evtObj = gameState.currentSeasonEventPool[3 - gameState.eventsRemainingThisSeason];
+      document.getElementById('event-modal-title').innerText = `動態事件 (${4 - gameState.eventsRemainingThisSeason}/3)：${evtObj.title}`;
+      document.getElementById('event-modal-desc').innerText = evtObj.desc;
+
+      const container = document.getElementById('event-modal-choices');
+      container.innerHTML = '';
+
+      evtObj.choices.forEach((choice, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        btn.innerHTML = `<strong>選項 ${idx + 1}：</strong> ${choice.text}`;
+        btn.onclick = () => applyEventChoice(choice);
+        container.appendChild(btn);
+      });
+
+      document.getElementById('modal-event').classList.add('active');
+    }
+
+    function applyEventChoice(choice) {
+      closeModal('modal-event');
+
+      Object.keys(choice.changes).forEach(k => {
+        if (k === 'coachTrust') {
+          gameState.coachTrust = Math.min(100, Math.max(0, gameState.coachTrust + choice.changes[k]));
+        } else if (k === 'potential') {
+          gameState.potentialCap = Math.min(99, gameState.potentialCap + choice.changes[k]);
+        } else if (gameState.attributes[k] !== undefined) {
+          gameState.attributes[k] = Math.max(30, Math.min(gameState.potentialCap, gameState.attributes[k] + choice.changes[k]));
+        }
+      });
+
+      gameState.overall = calculateOverall(gameState.attributes);
+      gameState.eventsRemainingThisSeason -= 1;
+
+      const logBox = document.getElementById('season-log');
+      const p = document.createElement('p');
+      p.style.cssText = "margin-bottom:0.4rem; padding-bottom:0.4rem; border-bottom:1px dashed var(--border-color);";
+      p.innerHTML = `<strong style="color:var(--primary);">[抉擇結果]</strong> ${choice.textRes}`;
+      logBox.prepend(p);
+
+      if (gameState.eventsRemainingThisSeason <= 0) {
+        gameState.seasonStage = 'events_done';
+      }
+
+      updateHubUI();
+    }
+
+    // Trade & Roster System
+    function renderRosterTab() {
+      document.getElementById('team-roster-title').innerText = `${gameState.currentTeam.name} 陣容成員與選秀權資產：`;
+      const tbody = document.getElementById('current-roster-tbody');
+      tbody.innerHTML = '';
+
+      // Player himself
+      const myTr = document.createElement('tr');
+      myTr.style.background = "#eff6ff";
+      myTr.innerHTML = `<td><strong>${gameState.player.name} (你)</strong></td><td>${gameState.player.pos}</td><td><strong>${gameState.overall}</strong></td><td>$${gameState.contract.salary.toFixed(1)}M</td>`;
+      tbody.appendChild(myTr);
+
+      gameState.currentTeam.roster.forEach(m => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${m.name}</td><td>${m.pos}</td><td>${m.ovr}</td><td>$${m.salary.toFixed(1)}M</td>`;
+        tbody.appendChild(tr);
+      });
+
+      gameState.currentTeam.draftPicks.forEach(pk => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>🎫 ${pk}</td><td>選秀權</td><td>-</td><td>$0M</td>`;
+        tbody.appendChild(tr);
+      });
+
+      const teamSelect = document.getElementById('trade-target-team-select');
+      teamSelect.innerHTML = '';
+      NBA_TEAMS.filter(t => t.id !== gameState.currentTeam.id).forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.innerText = `${t.name} (${t.tier})`;
+        teamSelect.appendChild(opt);
+      });
+
+      const myAssetSelect = document.getElementById('trade-my-asset-select');
+      myAssetSelect.innerHTML = '';
+      
+      const optMe = document.createElement('option');
+      optMe.value = 'ME';
+      optMe.innerText = `自己: ${gameState.player.name} ($${gameState.contract.salary.toFixed(1)}M)`;
+      myAssetSelect.appendChild(optMe);
+
+      gameState.currentTeam.roster.forEach((m, idx) => {
+        const opt = document.createElement('option');
+        opt.value = `PLAYER_${idx}`;
+        opt.innerText = `隊友: ${m.name} (OVR:${m.ovr}, $${m.salary}M)`;
+        myAssetSelect.appendChild(opt);
+      });
+
+      gameState.currentTeam.draftPicks.forEach((pk, idx) => {
+        const opt = document.createElement('option');
+        opt.value = `PICK_${idx}`;
+        opt.innerText = `資產: ${pk}`;
+        myAssetSelect.appendChild(opt);
+      });
+
+      onTradeTargetTeamChange();
+    }
+
+    function onTradeTargetTeamChange() {
+      const targetTeamId = document.getElementById('trade-target-team-select').value;
+      const targetTeam = NBA_TEAMS.find(t => t.id === targetTeamId);
+      const playerSelect = document.getElementById('trade-target-player-select');
+      playerSelect.innerHTML = '';
+
+      targetTeam.roster.forEach((m, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.innerText = `${m.name} (${m.pos}, OVR:${m.ovr}, $${m.salary}M)`;
+        playerSelect.appendChild(opt);
+      });
+    }
+
+    function executeAssetTrade() {
+      const targetTeamId = document.getElementById('trade-target-team-select').value;
+      const targetTeamRaw = NBA_TEAMS.find(t => t.id === targetTeamId);
+      const targetPlayerIdx = parseInt(document.getElementById('trade-target-player-select').value);
+      
+      if (isNaN(targetPlayerIdx) || !targetTeamRaw.roster[targetPlayerIdx]) {
+        showAlert("交易失敗 ❌", "對手球隊已無可交易球員！");
+        return;
+      }
+
+      const targetPlayer = targetTeamRaw.roster[targetPlayerIdx];
+      const assetVal = document.getElementById('trade-my-asset-select').value;
+
+      if (assetVal === 'ME') {
+        gameState.currentTeam = JSON.parse(JSON.stringify(targetTeamRaw));
+        gameState.coachTrust = Math.max(50, gameState.coachTrust - 10);
+        showAlert("交易達成 ✈️", `你提出了交易申請並成功加盟 ${targetTeamRaw.name}！教練信任度稍微下降。`);
+      } else {
+        // Add player to my roster & remove from target team (Fixed bug #3)
+        gameState.currentTeam.roster.push(targetPlayer);
+        targetTeamRaw.roster.splice(targetPlayerIdx, 1);
+
+        if (assetVal.startsWith('PLAYER_')) {
+          const pIdx = parseInt(assetVal.replace('PLAYER_', ''));
+          gameState.currentTeam.roster.splice(pIdx, 1);
+        } else if (assetVal.startsWith('PICK_')) {
+          const pkIdx = parseInt(assetVal.replace('PICK_', ''));
+          gameState.currentTeam.draftPicks.splice(pkIdx, 1);
+        }
+        showAlert("交易成功 🤝", `管理層成功發動交易，引進了 ${targetPlayer.name}！陣容實力獲得補強。`);
+      }
+
+      updateHubUI();
+    }
+
+    // Season Simulation & DATA-DRIVEN AWARDS
+    function simulateSeason() {
+      const mpg = calculateMPG();
+      const games = 82;
+
+      const outsideRatio = gameState.tendency.outsideRatio / 100;
+      const insideRatio = 1 - outsideRatio;
+      const usage = gameState.tendency.usageRate;
+
+      // Base Attempts
+      const baseFga = (gameState.overall / 99) * (mpg / 36) * 19 * usage;
+      const fga = Number(baseFga.toFixed(1));
+
+      // Shooting Percentages
+      const fgPct = Number((0.41 + (gameState.attributes.inside / 100) * 0.13).toFixed(3));
+      const threePct = Number((0.28 + (gameState.attributes.outside / 100) * 0.14).toFixed(3));
+
+      // Points Formula
+      const threeAttempts = fga * outsideRatio;
+      const twoAttempts = fga * insideRatio;
+      const ppg = Number(((twoAttempts * fgPct * 2) + (threeAttempts * threePct * 3) + (fga * 0.22 * 0.8)).toFixed(1));
+
+      // Dynamic Rebounds & Assists (Fixed Bug #1: Flexible positions so SF/C can get Double-Doubles)
+      const pos = gameState.player.pos;
+      const isBig = pos.includes('C') || pos.includes('PF');
+      const isGuard = pos.includes('PG') || pos.includes('SG');
+
+      const playFactor = gameState.attributes.playmaking / 99;
+      const rebFactor = gameState.attributes.rebounding / 99;
+
+      let maxApg = isGuard ? 11.5 : (pos === 'SF' ? 10.2 : 9.0);
+      let maxRpg = isBig ? 12.0 : (pos === 'SF' ? 10.2 : 7.0);
+
+      const apg = Number((playFactor * maxApg * (mpg / 36)).toFixed(1));
+      const rpg = Number((rebFactor * maxRpg * (mpg / 36)).toFixed(1));
+      const spg = Number((gameState.attributes.perDef / 99 * 1.8).toFixed(1));
+      const bpg = Number((gameState.attributes.intDef / 99 * 2.2).toFixed(1));
+
+      // DATA-DRIVEN AWARDS EVALUATION
+      let awards = [];
+
+      // 1. All-Star: 20+ PPG OR Double-Double (15+ PPG & 10+ RPG/APG)
+      if (ppg >= 20.0 || (ppg >= 15.0 && (rpg >= 10.0 || apg >= 10.0))) {
+        awards.push("全明星 (All-Star)");
+      }
+
+      // 2. All-NBA Teams & MVP Criteria
+      let allNbaTier = 0;
+      let isMVP = false;
+
+      // MVP: 32+ PPG OR (28+ PPG & 10+ RPG) OR (30+ PPG & 10+ APG)
+      if (ppg >= 32.0 || (ppg >= 28.0 && rpg >= 10.0) || (ppg >= 30.0 && apg >= 10.0)) {
+        isMVP = true;
+        awards.push("MVP (常規賽最有價值球員)");
+        allNbaTier = 1;
+      }
+      // 1st Team: 29+ PPG OR (25+ PPG & 10+ RPG) OR (27+ PPG & 10+ APG)
+      else if (ppg >= 29.0 || (ppg >= 25.0 && rpg >= 10.0) || (ppg >= 27.0 && apg >= 10.0)) {
+        allNbaTier = 1;
+      }
+      // 2nd Team: 27+ PPG OR (23+ PPG & 10+ RPG) OR (24+ PPG & 10+ APG)
+      else if (ppg >= 27.0 || (ppg >= 23.0 && rpg >= 10.0) || (ppg >= 24.0 && apg >= 10.0)) {
+        allNbaTier = 2;
+      }
+      // 3rd Team: 25+ PPG OR (20+ PPG & 10+ RPG) OR (20+ PPG & 10+ APG)
+      else if (ppg >= 25.0 || (ppg >= 20.0 && rpg >= 10.0) || (ppg >= 20.0 && apg >= 10.0)) {
+        allNbaTier = 3;
+      }
+
+      // Fixed Bug #2: MVP gets All-NBA 1st Team tag as well
+      if (allNbaTier === 1) awards.push("All-NBA 最佳第一陣容");
+      else if (allNbaTier === 2) awards.push("All-NBA 最佳第二陣容");
+      else if (allNbaTier === 3) awards.push("All-NBA 最佳第三陣容");
+
+      // DPOY & ROTY
+      if (spg + bpg >= 3.2 || bpg >= 2.3) awards.push("DPOY (最佳防守球員)");
+      if (gameState.seasonYearIndex === 1 && ppg >= 16.0) awards.push("ROTY (最佳新秀)");
+
+      // Playoff Simulation
+      let playoffResult = "止步常規賽";
+      let wonTitle = false;
+      let wonFMVP = false;
+
+      if (ppg >= 22.0) {
+        playoffResult = "打入季後賽第二輪";
+        if (ppg >= 26.0) {
+          playoffResult = "奪得 NBA 總冠軍 🏆";
+          wonTitle = true;
+          if (ppg >= 28.0) {
+            wonFMVP = true;
+            awards.push("FMVP (總決賽 MVP)");
+          }
+        }
+      }
+
+      const record = {
+        year: gameState.calendarYear,
+        team: gameState.currentTeam.id,
+        mpg, ppg, rpg, apg, spg, bpg,
+        awards: awards.join(', ') || "無"
+      };
+
+      gameState.historyStats.push(record);
+
+      const t = gameState.careerTotals;
+      t.pts += Math.round(ppg * games);
+      t.reb += Math.round(rpg * games);
+      t.ast += Math.round(apg * games);
+      t.earnings += gameState.contract.salary;
+      t.games += games;
+      if (wonTitle) t.titles += 1;
+      if (wonFMVP) t.fmvps += 1;
+      if (isMVP) t.mvps += 1;
+      if (awards.some(a => a.includes("全明星"))) t.allStar += 1;
+      if (allNbaTier > 0) t.allNBA += 1;
+
+      renderHistoryTable();
+
+      gameState.seasonStage = 'sim_done';
+      updateHubUI();
+
+      showAlert("賽季總結 🏁", `場均數據：${ppg} 分 | ${rpg} 籃板 | ${apg} 助攻\n季後賽戰績：${playoffResult}\n榮譽獲得：${awards.join(', ') || '無'}`);
+    }
+
+    function renderHistoryTable() {
+      const tbody = document.getElementById('history-table-body');
+      tbody.innerHTML = '';
+
+      gameState.historyStats.forEach(s => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${s.year}</td><td>${s.team}</td><td>${s.mpg}</td><td><strong>${s.ppg}</strong></td>
+          <td>${s.rpg}</td><td>${s.apg}</td><td>${s.spg}</td><td>${s.bpg}</td>
+          <td><span style="color:var(--primary); font-weight:bold;">${s.awards}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const t = gameState.careerTotals;
+      document.getElementById('hist-pts').innerText = t.pts.toLocaleString();
+      document.getElementById('hist-reb').innerText = t.reb.toLocaleString();
+      document.getElementById('hist-ast').innerText = t.ast.toLocaleString();
+      document.getElementById('hist-titles').innerText = t.titles;
+      document.getElementById('hist-fmvps').innerText = t.fmvps;
+      document.getElementById('hist-mvps').innerText = t.mvps;
+      document.getElementById('hist-allstar').innerText = t.allStar;
+      document.getElementById('hist-allnba').innerText = t.allNBA;
+      document.getElementById('hist-earnings').innerText = `$${t.earnings.toFixed(1)}M`;
+    }
+
+    function startNextSeasonFlow() {
+      gameState.age += 1;
+      gameState.seasonYearIndex += 1;
+      gameState.calendarYear += 1;
+
+      if (gameState.age <= 26) {
+        Object.keys(gameState.attributes).forEach(k => gameState.attributes[k] = Math.min(gameState.potentialCap, gameState.attributes[k] + 1));
+      } else if (gameState.age >= 32) {
+        Object.keys(gameState.attributes).forEach(k => gameState.attributes[k] = Math.max(30, gameState.attributes[k] - 1));
+      }
+
+      gameState.overall = calculateOverall(gameState.attributes);
+      gameState.allocatablePoints = 3;
+      allocatedThisSession = { inside: 0, outside: 0, playmaking: 0, perDef: 0, intDef: 0, rebounding: 0, athleticism: 0 };
+
+      if (gameState.age >= 39) {
+        triggerEndGame();
+        return;
+      }
+
+      renderAllocPage();
+      navigateTo('page-alloc');
+    }
+
+    function triggerEndGame() {
+      document.getElementById('header-retire-btn').style.display = 'none';
+      navigateTo('page-end');
+      const t = gameState.careerTotals;
+
+      document.getElementById('end-pts').innerText = t.pts.toLocaleString();
+      document.getElementById('end-reb').innerText = t.reb.toLocaleString();
+      document.getElementById('end-ast').innerText = t.ast.toLocaleString();
+      document.getElementById('end-earnings').innerText = `$${t.earnings.toFixed(1)}M`;
+      document.getElementById('end-titles').innerText = t.titles;
+      document.getElementById('end-fmvps').innerText = t.fmvps;
+      document.getElementById('end-mvps').innerText = t.mvps;
+      document.getElementById('end-allstar').innerText = t.allStar;
+      document.getElementById('end-allnba').innerText = t.allNBA;
+
+      let title = "角色球員 (Role Player)";
+      if (t.titles >= 2 && t.mvps >= 1) {
+        title = "🏆 [ Hall of Fame 歷史殿堂級傳奇巨星 (GOAT Candidate) ]";
+      } else if (t.mvps >= 1 || t.titles >= 1 || t.allStar >= 5) {
+        title = "⭐ [ 名人堂級全明星 (Hall of Famer) ]";
+      } else if (t.allStar >= 2) {
+        title = "🔥 [ 明星球員 (All-Star Player) ]";
+      }
+
+      document.getElementById('end-player-title').innerText = title;
+    }
+
+    function switchTab(evt, tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+
+      if (evt && evt.currentTarget) evt.currentTarget.classList.add('active');
+      document.getElementById(tabId).style.display = 'block';
+    }
+
+    window.onload = () => {
+      initPlayerSelectGrid();
+    };
+  </script>
+</body>
+</html>
