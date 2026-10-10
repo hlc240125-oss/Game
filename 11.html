@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>鋼鐵雄心4 簡化版 (HOI4 Lite)</title>
+    <style>
+        :root {
+            --bg-color: #121619;
+            --panel-bg: #1e252b;
+            --panel-border: #34404c;
+            --accent-green: #4d7c0f;
+            --accent-green-hover: #65a30d;
+            --accent-gold: #d97706;
+            --accent-red: #dc2626;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+        /* 頂部資源列 */
+        header {
+            background-color: #0f1315;
+            border-bottom: 2px solid var(--panel-border);
+            padding: 8px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .resource-bar { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+        .res-item { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; background: #1a2026; padding: 4px 10px; border-radius: 4px; border: 1px solid #2d3748; }
+        .res-label { color: var(--text-muted); font-size: 0.8rem; }
+        .res-val { font-weight: bold; color: #f8fafc; }
+
+        .time-controls { display: flex; align-items: center; gap: 10px; }
+        .date-display { font-weight: bold; color: var(--accent-gold); letter-spacing: 1px; font-size: 1rem; }
+        .speed-btn { background: #2d3748; border: 1px solid #4a5568; color: white; padding: 4px 10px; cursor: pointer; border-radius: 3px; }
+        .speed-btn.active { background: var(--accent-green); border-color: #84cc16; }
+
+        /* 主遊戲區劃分 */
+        main { display: flex; flex: 1; overflow: hidden; }
+
+        /* 導覽頁籤 */
+        nav { width: 180px; background-color: var(--panel-bg); border-right: 1px solid var(--panel-border); display: flex; flex-direction: column; gap: 4px; padding: 10px 0; }
+        .tab-btn { background: none; border: none; color: var(--text-muted); padding: 12px 20px; text-align: left; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s; border-left: 4px solid transparent; }
+        .tab-btn:hover { background-color: #2a343d; color: white; }
+        .tab-btn.active { background-color: #2a343d; color: var(--accent-gold); border-left-color: var(--accent-gold); }
+
+        /* 頁面內容區 */
+        .content-area { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+        .tab-content { display: none; flex-direction: column; gap: 15px; }
+        .tab-content.active { display: flex; }
+
+        /* 通用面板樣式 */
+        .card { background-color: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 6px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .card-title { font-size: 1.1rem; color: var(--accent-gold); margin-bottom: 12px; border-bottom: 1px solid var(--panel-border); padding-bottom: 6px; display: flex; justify-content: space-between; }
+
+        /* 按鈕樣式 */
+        .btn { background: var(--accent-green); color: white; border: none; padding: 8px 14px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn:hover { background: var(--accent-green-hover); }
+        .btn:disabled { background: #475569; cursor: not-allowed; opacity: 0.6; }
+        .btn-danger { background: var(--accent-red); }
+        .btn-danger:hover { background: #b91c1c; }
+
+        /* 國策樹 */
+        .focus-tree { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+        .focus-node { background: #182026; border: 1px solid #2d3748; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px; }
+        .focus-node.completed { border-color: var(--accent-green); background: #142312; }
+        .focus-node.in-progress { border-color: var(--accent-gold); background: #262012; }
+
+        /* 生產面板 */
+        .prod-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2a343d; }
+        .counter-btn { width: 28px; height: 28px; background: #334155; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+
+        /* 戰線與地圖 */
+        .war-status { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .progress-bar-container { background: #0f172a; border-radius: 10px; height: 16px; overflow: hidden; border: 1px solid #334155; margin: 8px 0; }
+        .progress-bar { background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444); height: 100%; width: 50%; transition: width 0.3s; }
+
+        /* 日誌面板 */
+        .log-panel { background: #0b0f12; border: 1px solid var(--panel-border); border-radius: 6px; padding: 10px; height: 140px; overflow-y: auto; font-family: monospace; font-size: 0.85rem; color: #cbd5e1; }
+        .log-entry { margin-bottom: 4px; }
+        .log-date { color: var(--accent-gold); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="resource-bar">
+            <div class="res-item" title="政治點數：用於任命內閣與執行國策"><span class="res-label">PP</span><span class="res-val" id="res-pp">100</span></div>
+            <div class="res-item" title="民用工廠：用於建築與貿易"><span class="res-label">民工</span><span class="res-val" id="res-civ">12</span></div>
+            <div class="res-item" title="軍用工廠：用於製造武器"><span class="res-label">軍工</span><span class="res-val" id="res-mil">8</span></div>
+            <div class="res-item" title="人力資源：徵兵儲備"><span class="res-label">人力</span><span class="res-val" id="res-mp">1.2M</span></div>
+            <div class="res-item" title="世界緊張度"><span class="res-label">世界緊張度</span><span class="res-val" id="res-wt" style="color:#ef4444;">0%</span></div>
+        </div>
+        <div class="time-controls">
+            <span class="date-display" id="date-display">1936-01-01</span>
+            <button class="speed-btn active" onclick="setSpeed(0)">⏸</button>
+            <button class="speed-btn" onclick="setSpeed(1)">▶ 1x</button>
+            <button class="speed-btn" onclick="setSpeed(2)">▶▶ 2x</button>
+            <button class="speed-btn" onclick="setSpeed(5)">⚡ 5x</button>
+        </div>
+    </header>
+
+    <main>
+        <nav>
+            <button class="tab-btn active" onclick="switchTab(this, 'focus')">🏛️ 國家國策</button>
+            <button class="tab-btn" onclick="switchTab(this, 'production')">🏭 工業生產</button>
+            <button class="tab-btn" onclick="switchTab(this, 'military')">🪖 陸軍招募</button>
+            <button class="tab-btn" onclick="switchTab(this, 'war')">⚔️ 戰線與軍事</button>
+        </nav>
+
+        <section class="content-area">
+            <!-- 國策焦點 Tab -->
+            <div id="tab-focus" class="tab-content active">
+                <div class="card">
+                    <div class="card-title">
+                        <span>國家重點歷史樹 (德國簡化線)</span>
+                        <span id="current-focus-text" style="font-size:0.9rem; color:var(--accent-gold);">目前國策: 無</span>
+                    </div>
+                    <div class="focus-tree" id="focus-tree-container"></div>
+                </div>
+            </div>
+
+            <!-- 生產與建設 Tab -->
+            <div id="tab-production" class="tab-content">
+                <div class="card">
+                    <div class="card-title">軍事裝備生產配給 (<span id="unallocated-mil">0</span> 未指派軍工)</div>
+                    <div class="prod-row">
+                        <div><strong>步兵裝備 (步槍/重炮)</strong><br><small style="color:var(--text-muted)">日產: <span id="daily-guns">0</span> 槍支 | 庫存: <span id="stock-guns">2000</span></small></div>
+                        <div>
+                            <button class="counter-btn" onclick="adjustFactory('guns', -1)">-</button>
+                            <span style="margin: 0 8px; font-weight:bold;" id="fac-guns">4</span>
+                            <button class="counter-btn" onclick="adjustFactory('guns', 1)">+</button>
+                        </div>
+                    </div>
+                    <div class="prod-row">
+                        <div><strong>中型坦克 (裝甲機動)</strong><br><small style="color:var(--text-muted)">日產: <span id="daily-tanks">0</span> 輛 | 庫存: <span id="stock-tanks">100</span></small></div>
+                        <div>
+                            <button class="counter-btn" onclick="adjustFactory('tanks', -1)">-</button>
+                            <span style="margin: 0 8px; font-weight:bold;" id="fac-tanks">2</span>
+                            <button class="counter-btn" onclick="adjustFactory('tanks', 1)">+</button>
+                        </div>
+                    </div>
+                    <div class="prod-row">
+                        <div><strong>戰鬥機 (空中優勢)</strong><br><small style="color:var(--text-muted)">日產: <span id="daily-planes">0</span> 架 | 庫存: <span id="stock-planes">50</span></small></div>
+                        <div>
+                            <button class="counter-btn" onclick="adjustFactory('planes', -1)">-</button>
+                            <span style="margin: 0 8px; font-weight:bold;" id="fac-planes">2</span>
+                            <button class="counter-btn" onclick="adjustFactory('planes', 1)">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">民用建造計劃</div>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 10px;">利用民用工廠擴建基礎設施與工廠（需花費民工產能）</p>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn" onclick="buildFactory('civ')">新建民用工廠 (費用: 100 點民工天數)</button>
+                        <button class="btn" onclick="buildFactory('mil')">新建軍用工廠 (費用: 80 點民工天數)</button>
+                    </div>
+                    <div style="margin-top: 10px; font-size:0.85rem;" id="build-queue-text">無建造項目</div>
+                </div>
+            </div>
+
+            <!-- 軍事編制 Tab -->
+            <div id="tab-military" class="tab-content">
+                <div class="card">
+                    <div class="card-title">現役部隊與訓練</div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div style="background:#182026; padding:12px; border-radius:6px;">
+                            <h4>步兵師 (Infantry Division)</h4>
+                            <p style="font-size:0.85rem; color:var(--text-muted); margin: 6px 0;">消耗: 1,000 步槍, 10k 人力<br>屬性: 攻擊 120 | 防禦 220</p>
+                            <p>現役數量: <strong id="div-inf-count" style="color:var(--accent-gold)">20</strong> 個師</p>
+                            <button class="btn" style="margin-top:10px;" onclick="trainDivision('inf')">招募步兵師</button>
+                        </div>
+                        <div style="background:#182026; padding:12px; border-radius:6px;">
+                            <h4>裝甲師 (Armored Division)</h4>
+                            <p style="font-size:0.85rem; color:var(--text-muted); margin: 6px 0;">消耗: 500 步槍, 150 坦克, 8k 人力<br>屬性: 攻擊 350 | 防禦 120 (突擊強)</p>
+                            <p>現役數量: <strong id="div-arm-count" style="color:var(--accent-gold)">4</strong> 個師</p>
+                            <button class="btn" style="margin-top:10px;" onclick="trainDivision('arm')">招募裝甲師</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 戰線與戰爭 Tab -->
+            <div id="tab-war" class="tab-content">
+                <div class="card">
+                    <div class="card-title">大戰略控制台</div>
+                    <div class="war-status">
+                        <div>
+                            <h3>當前狀態: <span id="war-status-title" style="color:#10b981;">和平中</span></h3>
+                            <p style="margin: 8px 0; font-size: 0.9rem; color:var(--text-muted);">選擇當前交戰對象或透過國策宣戰。</p>
+                            <div style="margin-top: 15px;">
+                                <label style="font-size:0.85rem;">手動對鄰國外交宣戰 (需要 50 PP 及 15% 世界緊張度):</label><br>
+                                <button class="btn btn-danger" style="margin-top:6px;" id="btn-declare-poland" onclick="declareWar('波蘭')">宣戰波蘭</button>
+                                <button class="btn btn-danger" style="margin-top:6px;" id="btn-declare-france" onclick="declareWar('法國')">宣戰法國</button>
+                                <button class="btn btn-danger" style="margin-top:6px;" id="btn-declare-ussr" onclick="declareWar('蘇聯')">宣戰蘇聯</button>
+                            </div>
+                        </div>
+
+                        <div id="combat-panel" style="display:none; background:#182026; padding:12px; border-radius:6px;">
+                            <h4>戰線局勢: <span id="enemy-name-display" style="color:var(--accent-red)">波蘭</span></h4>
+                            <p style="font-size:0.85rem; margin-top:4px;">敵軍規模: 約 <span id="enemy-divs">15</span> 個師</p>
+                            
+                            <div style="margin: 12px 0;">
+                                <!-- 修復 CSS 排版：justify-content: space-between -->
+                                <div style="display:flex; justify-content: space-between; font-size:0.8rem;">
+                                    <span>我方推進戰果</span>
+                                    <span id="war-progress-num">0%</span>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar" id="war-progress-bar" style="width: 0%;"></div>
+                                </div>
+                            </div>
+
+                            <div style="display:flex; gap:8px;">
+                                <button class="btn" style="flex:1;" onclick="setTactics('attack')">⚔️ 全面進攻</button>
+                                <button class="btn" style="flex:1; background:#475569;" onclick="setTactics('defend')">🛡️ 固守陣地</button>
+                            </div>
+                            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:8px;">當前戰術: <span id="current-tactic" style="color:white;">固守陣地</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 下方戰報日誌 -->
+            <div class="card" style="padding:10px;">
+                <div style="font-size:0.85rem; font-weight:bold; color:var(--text-muted); margin-bottom:6px;">最高統帥部簡報記錄</div>
+                <div class="log-panel" id="log-panel"></div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // 遊戲核心數據狀態
+        const state = {
+            date: new Date(1936, 0, 1),
+            speed: 0, // 0: pause, 1: 1s, 2: 0.5s, 5: 0.2s
+            timer: null,
+            pp: 100,
+            civFactories: 12,
+            milFactories: 8,
+            manpower: 1200000,
+            worldTension: 0,
+            
+            // 裝備與分配
+            stock: { guns: 2500, tanks: 120, planes: 60 },
+            allocations: { guns: 4, tanks: 2, planes: 2 },
+            
+            // 建造
+            building: null, // { type: 'civ'/'mil', progress: 0, cost: 100 }
+            
+            // 師團
+            divisions: { inf: 20, arm: 4 },
+            
+            // 國策
+            activeFocus: null,
+            completedFocuses: [],
+            
+            // 戰爭狀態
+            war: {
+                active: false,
+                enemy: null,
+                progress: 0, // 0 - 100% (100% 即投降)
+                enemyDivs: 0,
+                tactic: 'defend' // 'attack' or 'defend'
+            }
+        };
+
+        // 國策數據定義
+        const focusTree = [
+            { id: 'rhineland', name: '重劃萊茵蘭軍事區', req: [], days: 70, pp: 100, wt: 5, rewardText: '+100 PP, +5% 世界緊張度', done: false },
+            { id: 'four_year_plan', name: '四年計劃 (工業強化)', req: ['rhineland'], days: 70, civ: 3, rewardText: '+3 民用工廠', done: false },
+            { id: 'anschluss', name: '德奧合併 (Anschluss)', req: ['rhineland'], days: 70, mp: 100000, civ: 2, mil: 2, wt: 10, rewardText: '+100k 人力, +2民工, +2軍工', done: false },
+            { id: 'sudetenland', name: '蘇台德區問題', req: ['anschluss'], days: 70, mil: 3, wt: 15, rewardText: '+3 軍用工廠, +15% 世界緊張度', done: false },
+            { id: 'danzig', name: '但澤或戰爭 (Danzig or War)', req: ['sudetenland'], days: 70, warPoland: true, rewardText: '對波蘭宣戰！開啟歐戰', done: false }
+        ];
+
+        // 初始化
+        function init() {
+            renderFocusTree();
+            updateUI();
+            addLog("1936 年元旦，最高統帥部正式成立。請選擇國家焦點以指導建設。");
+        }
+
+        // 切換頁籤（修正按鈕傳參）
+        function switchTab(btnElem, tabName) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            if (btnElem) btnElem.classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+        }
+
+        // 時間控制
+        function setSpeed(s) {
+            state.speed = s;
+            document.querySelectorAll('.speed-btn').forEach((btn, idx) => {
+                btn.classList.toggle('active', (s === 0 && idx === 0) || (s === 1 && idx === 1) || (s === 2 && idx === 2) || (s === 5 && idx === 3));
+            });
+
+            if (state.timer) clearInterval(state.timer);
+            if (s > 0) {
+                const interval = s === 1 ? 1000 : (s === 2 ? 500 : 200);
+                state.timer = setInterval(gameTick, interval);
+            }
+        }
+
+        // 核心每日 Tick
+        function gameTick() {
+            // 日期推進
+            state.date.setDate(state.date.getDate() + 1);
+            
+            // 每日 PP 增長
+            state.pp += 0.75;
+
+            // 每日生產邏輯
+            const gunProd = state.allocations.guns * 15;
+            const tankProd = state.allocations.tanks * 1.5;
+            const planeProd = state.allocations.planes * 2;
+
+            state.stock.guns += Math.floor(gunProd);
+            state.stock.tanks += Math.floor(tankProd);
+            state.stock.planes += Math.floor(planeProd);
+
+            // 每日民用建造
+            if (state.building) {
+                state.building.progress += state.civFactories * 0.5;
+                if (state.building.progress >= state.building.cost) {
+                    if (state.building.type === 'civ') state.civFactories++;
+                    if (state.building.type === 'mil') state.milFactories++;
+                    addLog(`建造完成：新增了一個 ${state.building.type === 'civ' ? '民用工廠' : '軍用工廠'}。`);
+                    state.building = null;
+                }
+            }
+
+            // 國策推進
+            if (state.activeFocus) {
+                state.activeFocus.daysLeft--;
+                if (state.activeFocus.daysLeft <= 0) {
+                    completeFocus(state.activeFocus);
+                }
+            }
+
+            // 戰爭邏輯計算
+            if (state.war.active) {
+                processWarTick();
+            }
+
+            updateUI();
+        }
+
+        // 國策樹渲染
+        function renderFocusTree() {
+            const container = document.getElementById('focus-tree-container');
+            container.innerHTML = '';
+
+            focusTree.forEach(node => {
+                const div = document.createElement('div');
+                div.className = `focus-node ${node.done ? 'completed' : ''} ${state.activeFocus && state.activeFocus.id === node.id ? 'in-progress' : ''}`;
+                
+                const canStart = !node.done && !state.activeFocus && node.req.every(reqId => state.completedFocuses.includes(reqId));
+
+                div.innerHTML = `
+                    <div>
+                        <strong style="color:${node.done ? '#84cc16' : 'white'}">${node.name}</strong>
+                        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">效果: ${node.rewardText}</p>
+                        <p style="font-size:0.75rem; color:var(--accent-gold); margin-top:2px;">所需時間: ${node.days} 天</p>
+                    </div>
+                    <div style="margin-top:8px;">
+                        ${node.done ? '<span style="color:#84cc16; font-size:0.85rem; font-weight:bold;">✓ 已完成</span>' : 
+                          (state.activeFocus && state.activeFocus.id === node.id ? 
+                            `<span style="color:var(--accent-gold); font-size:0.85rem;">進行中 (剩餘 ${state.activeFocus.daysLeft} 天)</span>` : 
+                            `<button class="btn" ${canStart ? '' : 'disabled'} onclick="startFocus('${node.id}')">開始進行</button>`)}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function startFocus(id) {
+            const focus = focusTree.find(f => f.id === id);
+            state.activeFocus = { ...focus, daysLeft: focus.days };
+            addLog(`啟動國家焦點：[${focus.name}]。`);
+            renderFocusTree();
+            updateUI();
+        }
+
+        // 修復：正確同步完成狀態至 focusTree 陣列中
+        function completeFocus(activeFocus) {
+            const rawFocus = focusTree.find(f => f.id === activeFocus.id);
+            if (rawFocus) rawFocus.done = true;
+
+            state.completedFocuses.push(activeFocus.id);
+
+            if (activeFocus.pp) state.pp += activeFocus.pp;
+            if (activeFocus.civ) state.civFactories += activeFocus.civ;
+            if (activeFocus.mil) state.milFactories += activeFocus.mil;
+            if (activeFocus.mp) state.manpower += activeFocus.mp;
+            if (activeFocus.wt) state.worldTension = Math.min(100, activeFocus.wt + state.worldTension);
+            if (activeFocus.warPoland) declareWar('波蘭');
+
+            addLog(`國策完成：[${activeFocus.name}]！發放對應獎勵。`);
+            state.activeFocus = null;
+            renderFocusTree();
+            updateUI();
+        }
+
+        // 生產調節
+        function adjustFactory(type, delta) {
+            const unallocated = state.milFactories - (state.allocations.guns + state.allocations.tanks + state.allocations.planes);
+            if (delta > 0 && unallocated <= 0) return;
+            if (delta < 0 && state.allocations[type] <= 0) return;
+
+            state.allocations[type] += delta;
+            updateUI();
+        }
+
+        // 建造下單
+        function buildFactory(type) {
+            if (state.building) {
+                alert("目前已有工程在進行中！");
+                return;
+            }
+            const cost = type === 'civ' ? 100 : 80;
+            state.building = { type, progress: 0, cost };
+            addLog(`開始新建 ${type === 'civ' ? '民用工廠' : '軍用工廠'}`);
+            updateUI();
+        }
+
+        // 訓練師團
+        function trainDivision(type) {
+            if (type === 'inf') {
+                if (state.stock.guns < 1000 || state.manpower < 10000) {
+                    alert("步槍裝備或人力不足！(需要 1000 裝備, 10k 人力)");
+                    return;
+                }
+                state.stock.guns -= 1000;
+                state.manpower -= 10000;
+                state.divisions.inf++;
+                addLog("成功徵召並組建 1 個全新【步兵師】。");
+            } else if (type === 'arm') {
+                if (state.stock.guns < 500 || state.stock.tanks < 150 || state.manpower < 8000) {
+                    alert("武器或坦克或人力不足！(需要 500 槍, 150 坦克, 8k 人力)");
+                    return;
+                }
+                state.stock.guns -= 500;
+                state.stock.tanks -= 150;
+                state.manpower -= 8000;
+                state.divisions.arm++;
+                addLog("成功組建 1 個強大的【裝甲師】。");
+            }
+            updateUI();
+        }
+
+        // 宣戰
+        function declareWar(target) {
+            if (state.war.active) {
+                alert("你已經處於戰爭狀態中！");
+                return;
+            }
+            
+            let enemyDivs = 15;
+            if (target === '法國') enemyDivs = 35;
+            if (target === '蘇聯') enemyDivs = 70;
+
+            state.war = {
+                active: true,
+                enemy: target,
+                progress: 0,
+                enemyDivs: enemyDivs,
+                tactic: 'defend'
+            };
+
+            state.worldTension = Math.min(100, state.worldTension + 20);
+            addLog(`🚨 戰爭爆發！元首對 ${target} 下達了宣戰令！`);
+            updateUI();
+        }
+
+        function setTactics(tactic) {
+            state.war.tactic = tactic;
+            document.getElementById('current-tactic').innerText = tactic === 'attack' ? '全面進攻' : '固守陣地';
+        }
+
+        // 戰爭每日戰況計算
+        function processWarTick() {
+            // 我方總戰力 (步兵 120 攻, 裝甲 350 攻)
+            const attackPower = (state.divisions.inf * 120 + state.divisions.arm * 350) * (state.war.tactic === 'attack' ? 1.2 : 0.8);
+            // 敵人總防禦
+            const enemyDef = state.war.enemyDivs * 150;
+
+            // 空中優勢加成
+            const airBonus = state.stock.planes > 100 ? 1.15 : 1.0;
+
+            let deltaProgress = 0;
+            if (state.war.tactic === 'attack') {
+                if (attackPower * airBonus > enemyDef) {
+                    deltaProgress = 0.5 + Math.random() * 0.8; // 推進
+                } else {
+                    deltaProgress = -0.2; // 攻擊被擊退
+                }
+            } else {
+                deltaProgress = 0.1; // 固守積累微弱優勢
+            }
+
+            state.war.progress = Math.max(0, Math.min(100, state.war.progress + deltaProgress));
+
+            // 隨機戰損
+            if (state.war.tactic === 'attack' && Math.random() < 0.3) {
+                state.manpower = Math.max(0, state.manpower - Math.floor(Math.random() * 800));
+                state.stock.guns = Math.max(0, state.stock.guns - Math.floor(Math.random() * 50));
+            }
+
+            // 勝利判定
+            if (state.war.progress >= 100) {
+                addLog(`🎉 戰勝！${state.war.enemy} 宣佈無條件投降！我軍取得偉大勝利！`);
+                state.war.active = false;
+            }
+        }
+
+        // 更新介面顯示
+        function updateUI() {
+            // 頂部資源
+            document.getElementById('res-pp').innerText = Math.floor(state.pp);
+            document.getElementById('res-civ').innerText = state.civFactories;
+            document.getElementById('res-mil').innerText = state.milFactories;
+            document.getElementById('res-mp').innerText = (state.manpower / 1000000).toFixed(2) + 'M';
+            document.getElementById('res-wt').innerText = Math.floor(state.worldTension) + '%';
+
+            // 日期
+            const y = state.date.getFullYear();
+            const m = String(state.date.getMonth() + 1).padStart(2, '0');
+            const d = String(state.date.getDate()).padStart(2, '0');
+            document.getElementById('date-display').innerText = `${y}-${m}-${d}`;
+
+            // 生產
+            const unalloc = state.milFactories - (state.allocations.guns + state.allocations.tanks + state.allocations.planes);
+            document.getElementById('unallocated-mil').innerText = unalloc;
+            document.getElementById('fac-guns').innerText = state.allocations.guns;
+            document.getElementById('fac-tanks').innerText = state.allocations.tanks;
+            document.getElementById('fac-planes').innerText = state.allocations.planes;
+
+            document.getElementById('daily-guns').innerText = state.allocations.guns * 15;
+            document.getElementById('daily-tanks').innerText = (state.allocations.tanks * 1.5).toFixed(1);
+            document.getElementById('daily-planes').innerText = state.allocations.planes * 2;
+
+            document.getElementById('stock-guns').innerText = state.stock.guns;
+            document.getElementById('stock-tanks').innerText = state.stock.tanks;
+            document.getElementById('stock-planes').innerText = state.stock.planes;
+
+            // 建造隊列
+            document.getElementById('build-queue-text').innerText = state.building ? 
+                `正在建造: ${state.building.type === 'civ' ? '民工' : '軍工'} (${Math.floor((state.building.progress / state.building.cost) * 100)}%)` : "無建造項目";
+
+            // 國策
+            document.getElementById('current-focus-text').innerText = state.activeFocus ? `目前國策: ${state.activeFocus.name} (${state.activeFocus.daysLeft}天)` : "目前國策: 無";
+
+            // 軍事
+            document.getElementById('div-inf-count').innerText = state.divisions.inf;
+            document.getElementById('div-arm-count').innerText = state.divisions.arm;
+
+            // 戰爭
+            if (state.war.active) {
+                document.getElementById('war-status-title').innerText = "交戰中";
+                document.getElementById('war-status-title').style.color = "var(--accent-red)";
+                document.getElementById('combat-panel').style.display = "block";
+                document.getElementById('enemy-name-display').innerText = state.war.enemy;
+                document.getElementById('enemy-divs').innerText = state.war.enemyDivs;
+                document.getElementById('war-progress-num').innerText = state.war.progress.toFixed(1) + "%";
+                document.getElementById('war-progress-bar').style.width = state.war.progress + "%";
+            } else {
+                document.getElementById('war-status-title').innerText = "和平中";
+                document.getElementById('war-status-title').style.color = "#10b981";
+                document.getElementById('combat-panel').style.display = "none";
+            }
+        }
+
+        // 修復：當地時間字串格式化，避免 UTC 時區少一天的 Bug
+        function addLog(msg) {
+            const panel = document.getElementById('log-panel');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            
+            const y = state.date.getFullYear();
+            const m = String(state.date.getMonth() + 1).padStart(2, '0');
+            const d = String(state.date.getDate()).padStart(2, '0');
+            const dateStr = `${y}-${m}-${d}`;
+
+            entry.innerHTML = `<span class="log-date">[${dateStr}]</span> ${msg}`;
+            panel.appendChild(entry);
+            panel.scrollTop = panel.scrollHeight;
+        }
+
+        init();
+    </script>
+</body>
+</html>
